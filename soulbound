@@ -1,0 +1,79 @@
+*{box-sizing:border-box}body{margin:0;background:#050509;color:#fff;font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh}#game{width:min(960px,100vw);aspect-ratio:16/9;background:#090914;border:3px solid #333;box-shadow:0 0 40px #000;overflow:hidden}#screen{height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;background:radial-gradient(circle,#17172b,#07070d 65%)}#title{font-size:clamp(42px,8vw,88px);font-weight:900;letter-spacing:10px;text-shadow:4px 4px 0 #000;margin-bottom:8px}.subtitle{opacity:.8}#subtitle{font-size:20px;margin-bottom:42px;color:#bbb}button{background:#111;color:#fff;border:2px solid #fff;padding:14px 36px;font-size:18px;font-weight:bold;cursor:pointer}button:hover{background:#fff;color:#111}.hint{position:absolute;bottom:8%;font-size:13px;color:#777}canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Soulbound</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="game">
+    <section id="screen">
+      <div id="title">SOULBOUND</div>
+      <div id="subtitle">Uma aventura entre almas</div>
+      <button id="start">COMEÇAR</button>
+      <p class="hint">Setas/WASD para mover • Espaço para interagir</p>
+    </section>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
+
+const screen=document.getElementById('screen');
+const start=document.getElementById('start');
+const keys={};
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key===' ')e.preventDefault()});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+
+start.onclick=()=>{
+  const canvas=document.createElement('canvas'); canvas.width=480; canvas.height=270;
+  screen.innerHTML=''; screen.appendChild(canvas);
+  const ctx=canvas.getContext('2d');
+  const player={x:240,y:210,r:7,s:2};
+  let message='Explore o vale. Encontre sua alma.';
+  let npc={x:240,y:90};
+
+  function loop(){
+    update(); draw(); requestAnimationFrame(loop);
+  }
+  function update(){
+    let dx=0,dy=0;
+    if(keys['arrowleft']||keys['a'])dx--; if(keys['arrowright']||keys['d'])dx++;
+    if(keys['arrowup']||keys['w'])dy--; if(keys['arrowdown']||keys['s'])dy++;
+    if(dx&&dy){dx*=.707;dy*=.707}
+    player.x=Math.max(15,Math.min(465,player.x+dx*player.s));
+    player.y=Math.max(45,Math.min(255,player.y+dy*player.s));
+    const dist=Math.hypot(player.x-npc.x,player.y-npc.y);
+    if(dist<28 && (keys['e']||keys[' '])) message='Estranho: “Toda alma guarda uma escolha.”';
+    else if(dist>=28) message='Explore o vale. Encontre sua alma.';
+  }
+  function draw(){
+    ctx.fillStyle='#101326';ctx.fillRect(0,0,480,270);
+    ctx.fillStyle='#18203a';ctx.fillRect(0,150,480,120);
+    ctx.strokeStyle='#293457';ctx.lineWidth=3;
+    for(let x=0;x<480;x+=30){ctx.beginPath();ctx.moveTo(x,150);ctx.lineTo(x+20,270);ctx.stroke()}
+    ctx.fillStyle='#101010';ctx.fillRect(8,8,464,30);
+    ctx.fillStyle='#fff';ctx.font='12px monospace';ctx.fillText('SOULBOUND  •  HP 20/20',18,28);
+    ctx.fillStyle='#633';ctx.fillRect(npc.x-8,npc.y-12,16,24);
+    ctx.fillStyle='#f5c6a5';ctx.beginPath();ctx.arc(npc.x,npc.y-17,6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#e44';ctx.beginPath();ctx.arc(player.x,player.y,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#000';ctx.fillRect(12,220,456,38);
+    ctx.strokeStyle='#fff';ctx.strokeRect(12,220,456,38);
+    ctx.fillStyle='#fff';ctx.font='11px monospace';ctx.fillText(message,22,243);
+  }
+  loop();
+};
+
+# Soulbound — versão web
+
+Jogo experimental inspirado em RPGs narrativos.
+
+## Controles
+- WASD ou setas: mover
+- Espaço/E: interagir
+
+## Publicação
+Esta pasta é um site estático e pode ser publicada no GitHub Pages, Netlify, Vercel ou outro serviço de hospedagem estática.
+O arquivo de entrada é `index.html`.
