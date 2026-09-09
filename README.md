@@ -1,12 +1,23 @@
-# Soulbound
+# Soulbound — V1
 
-Protótipo web de Soulbound.
+Primeira versão expandida do protótipo web.
+
+## Recursos
+- Exploração do vale
+- NPC com diálogo
+- Alma colecionável
+- HP
+- Primeira batalha
+- Opções Lutar / Agir / Item / Poupar
+- Ataques para desviar
+- Vitória, derrota e poupar
+- Save local no navegador
+- Controles de teclado e controles básicos para celular
 
 ## Controles
-- WASD ou setas: mover
-- Espaço/E: interagir
+- WASD / setas: mover
+- E / Espaço: interagir
+- Na batalha: esquerda/direita para escolher; E/Espaço/Enter para confirmar
 
-## Arquivos
-- index.html — estrutura da página
-- style.css — aparência
-- script.js — programação do jogo
+## Publicação
+Coloque os quatro arquivos na raiz do repositório GitHub Pages.

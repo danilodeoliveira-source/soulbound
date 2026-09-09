@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Soulbound</title>
+  <title>Soulbound — Capítulo 1</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main id="game">
-    <section id="screen">
-      <div id="title">SOULBOUND</div>
-      <div id="subtitle">Uma aventura entre almas</div>
-      <button id="start">COMEÇAR</button>
-      <p class="hint">Setas/WASD para mover • Espaço para interagir</p>
-    </section>
+    <canvas id="screen" width="640" height="360"></canvas>
+    <div id="mobile-controls" aria-hidden="true">
+      <button data-key="arrowup">▲</button>
+      <div><button data-key="arrowleft">◀</button><button data-key="arrowdown">▼</button><button data-key="arrowright">▶</button></div>
+      <button data-key="e">E</button>
+    </div>
   </main>
   <script src="script.js"></script>
 </body>
