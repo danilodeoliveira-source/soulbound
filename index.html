@@ -2,18 +2,24 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Soulbound — V4</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#07070d">
+<title>Soulbound — V5</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main id="game">
-  <canvas id="screen" width="640" height="360"></canvas>
-  <button id="fullscreen" title="Tela cheia">⛶</button>
-  <div id="mobile-controls">
-    <button data-key="arrowup">▲</button>
-    <div><button data-key="arrowleft">◀</button><button data-key="arrowdown">▼</button><button data-key="arrowright">▶</button></div>
-    <button data-key="e">E</button>
+<main id="game-shell">
+  <canvas id="screen" width="960" height="540" aria-label="Soulbound V5"></canvas>
+  <button id="fullscreen" title="Tela cheia" aria-label="Tela cheia">⛶</button>
+  <div id="mobile-controls" aria-hidden="true">
+    <div class="dpad">
+      <button data-key="arrowup">▲</button>
+      <div><button data-key="arrowleft">◀</button><button data-key="arrowdown">▼</button><button data-key="arrowright">▶</button></div>
+    </div>
+    <div class="action-pad">
+      <button data-key="x">X</button>
+      <button data-key="e">E</button>
+    </div>
   </div>
 </main>
 <script src="script.js"></script>

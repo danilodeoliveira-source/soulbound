@@ -1,0 +1,7 @@
+{
+  "name": "Soulbound V5",
+  "version": "5.0.0",
+  "entry": "index.html",
+  "assets": "assets/",
+  "type": "static-web-game"
+}

@@ -1,19 +1,34 @@
-# Soulbound V4
+# Soulbound V5.1
 
-Versão expandida do jogo original Soulbound, com estética retrô 8-bit própria.
+Build 5.0.1 — revisão de fluxo de mensagens e turnos de batalha.
 
-### Novidades
-- Tela cheia pelo botão ou tecla F.
-- Alma/coração do jogador redesenhada.
-- Árvores, casas e matinho em todos os ambientes.
-- NPCs com sprites 8-bit mais detalhados.
-- Quatro ambientes: Vale, Floresta, Caverna e Ruínas.
-- Quatro inimigos, incluindo dois desafios extras e um chefe final.
-- Ataques visualmente diferentes: projéteis, socos e cortes.
-- Inimigo treme quando recebe um golpe.
-- Animação de derrota antes de sair da batalha.
-- Inimigos importantes não reaparecem após derrota ou poupar.
-- Save automático.
-- Controles desktop e mobile.
+Uma aventura RPG retrô original para navegador, inspirada no gênero de RPGs de combate por turnos e esquiva.
 
-Não usa personagens, sprites, músicas ou imagens de Undertale. A inspiração é apenas no gênero e na estrutura de RPG retrô.
+## O que há no V5
+- 4 regiões conectadas: Vale das Cinzas, Floresta Sussurrante, Caverna do Eco e Ruínas do Eclipse.
+- Ambientes com árvores, casas, água, pedras, flores, pontes, placas e partículas.
+- NPCs com retratos em pixel art vetorial original e diálogos com máquina de escrever.
+- Alma/coração com animação, rastro e invencibilidade após dano.
+- Sistema de combate completo: LUTAR, AGIR, ITEM e POUPAR.
+- Ataque de LUTAR com barra de timing.
+- Ações diferentes mudam a atitude e a misericórdia dos inimigos.
+- Itens de cura e inventário.
+- EXP, nível e evolução de HP.
+- 5 encontros: Morcego Nebuloso, Sentinela de Pedra, Duelista Rubro, Orbe Sussurrante e Guardião do Eclipse.
+- Padrões de ataque diferentes: orbes, socos, lâminas, paredes, círculos e chuva de projéteis.
+- Tremor de inimigo, flash, partículas, números de dano e animações de derrota.
+- Boss com duas fases.
+- Inimigos derrotados ou poupados não reaparecem.
+- Salvamento automático em localStorage.
+- Tela de pausa, configurações simples e redução de movimento.
+- Tela cheia e controles para celular.
+- Efeitos sonoros sintetizados pelo Web Audio, sem arquivos externos.
+
+## Controles
+- Mundo: WASD / setas para mover.
+- E / Espaço / Enter: falar, interagir, avançar.
+- X / Esc: voltar/pausar.
+- Batalha: setas/WASD para navegar; E/Espaço/Enter confirmar; X/Esc voltar.
+
+## Publicação
+O projeto é estático e pode ser publicado diretamente no GitHub Pages usando `main` e a pasta raiz `/`.

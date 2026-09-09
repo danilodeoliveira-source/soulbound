@@ -1,10 +1,13 @@
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;background:#050509;color:#fff;font-family:monospace}
-body{display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden}
-#game{width:min(1100px,100vw);aspect-ratio:16/9;background:#08080d;border:3px solid #333;box-shadow:0 0 40px #000;position:relative;overflow:hidden}
-canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-action:none}
-#fullscreen{position:absolute;right:10px;top:10px;background:#080808cc;color:#fff;border:2px solid #aaa;font:22px monospace;width:42px;height:38px;cursor:pointer;z-index:5}
-#mobile-controls{display:none;position:absolute;bottom:10px;left:10px;right:10px;justify-content:space-between;align-items:end;pointer-events:none}
-#mobile-controls button{pointer-events:auto;background:#111d;color:#fff;border:2px solid #aaa;border-radius:5px;width:50px;height:50px;font:20px monospace;touch-action:none}
-#mobile-controls div{display:flex;gap:5px}
-@media(max-width:700px){#mobile-controls{display:flex}}
+html,body{margin:0;width:100%;height:100%;background:#030307;color:#fff;font-family:"Courier New",monospace;overflow:hidden}
+body{display:flex;align-items:center;justify-content:center;min-height:100vh}
+#game-shell{position:relative;width:min(1200px,100vw);aspect-ratio:16/9;background:#05050a;border:2px solid #555;box-shadow:0 0 50px #000;overflow:hidden}
+canvas{width:100%;height:100%;display:block;image-rendering:pixelated;touch-action:none}
+#fullscreen{position:absolute;right:12px;top:12px;z-index:10;width:44px;height:40px;border:2px solid #aaa;background:#08080ddd;color:#fff;font:24px "Courier New";cursor:pointer}
+#fullscreen:hover{background:#222}
+#mobile-controls{display:none;position:absolute;inset:auto 12px 12px 12px;justify-content:space-between;align-items:end;pointer-events:none}
+#mobile-controls button{pointer-events:auto;width:52px;height:52px;margin:2px;border:2px solid #bbb;border-radius:6px;background:#0b0b12dd;color:#fff;font:20px "Courier New";touch-action:none}
+#mobile-controls button:active{background:#fff;color:#000}
+.dpad{text-align:center}.dpad>div{display:flex;gap:2px}.action-pad{display:flex;gap:6px}
+@media(max-width:760px){#mobile-controls{display:flex}#fullscreen{top:8px;right:8px}}
+@media(pointer:coarse){#mobile-controls{display:flex}}

@@ -1,8 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
-<rect width="180" height="180" rx="18" fill="#17131d"/>
-<path d="M45 45 L135 45 L150 105 L124 145 L56 145 L30 105Z" fill="#6f6578" stroke="#ded6e7" stroke-width="5"/>
-<path d="M45 45 L90 28 L135 45 L90 62Z" fill="#8c8196"/>
-<circle cx="65" cy="91" r="9" fill="#78d8ff"/><circle cx="115" cy="91" r="9" fill="#78d8ff"/>
-<path d="M58 116 L122 116" stroke="#302936" stroke-width="10"/>
-<path d="M55 133 L73 116 L90 136 L107 116 L125 133" fill="none" stroke="#4a414f" stroke-width="7"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 260"><g stroke="#0a0c13" stroke-width="10" stroke-linejoin="round"><path fill="#657f9c" d="M180 25l75 55v105l-35 45H140l-35-45V80z"/><path fill="#8fa8c2" d="M180 60l42 30v60h-84V90z"/><circle cx="160" cy="112" r="9" fill="#62d8ff"/><circle cx="200" cy="112" r="9" fill="#62d8ff"/><path fill="#27384e" d="M145 145h70v35h-70z"/><path fill="#7e99b4" d="M105 105L55 145l20 30 60-35zM255 105l50 40-20 30-60-35z"/></g></svg>

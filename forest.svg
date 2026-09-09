@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540">
+<rect width="960" height="540" fill="#163b2c"/><path fill="#20523a" d="M0 0h960v540H0z"/>
+<path fill="#174b53" d="M0 280q180-70 320 0t320 0t320 0v260H0z"/><path fill="#2d6b4b" d="M0 350q170-60 330 0t330 0t300 0v190H0z"/>
+<g fill="#0c2c24"><path d="M70 300L135 80l65 220z"/><path d="M180 330l70-260 70 260z"/><path d="M800 300l70-250 70 250z"/><path d="M690 330l65-230 65 230z"/></g>
+<g fill="#17483a"><circle cx="135" cy="110" r="48"/><circle cx="250" cy="90" r="55"/><circle cx="870" cy="80" r="52"/><circle cx="750" cy="120" r="55"/></g>
+<path fill="#9a794c" d="M450 540q-80-140 10-280h45q-85 140 20 280z"/><path fill="#6c4c32" d="M470 540q-65-140 10-260h20q-75 140 5 260z"/>
+<path fill="#6b4a30" d="M600 245h190v125H600z"/><path fill="#4b2d25" d="M575 250l120-100 120 100z"/><path fill="#e2c36b" d="M635 280h35v38h-35zM715 280h35v38h-35z"/>
+<g fill="#79a95a"><circle cx="330" cy="420" r="5"/><circle cx="350" cy="450" r="3"/><circle cx="570" cy="410" r="5"/></g>
+</svg>
