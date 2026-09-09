@@ -1,23 +1,28 @@
-# Soulbound — V1
+# Soulbound V3
 
-Primeira versão expandida do protótipo web.
+V3 com foco em combate, personagens e exploração.
 
-## Recursos
-- Exploração do vale
-- NPC com diálogo
-- Alma colecionável
-- HP
-- Primeira batalha
-- Opções Lutar / Agir / Item / Poupar
-- Ataques para desviar
-- Vitória, derrota e poupar
-- Save local no navegador
-- Controles de teclado e controles básicos para celular
+## Correções
+- Inimigos derrotados ficam derrotados e não reaparecem.
+- Cada encontro da história é único.
+- NPCs agora têm interação mais tolerante (raio maior) e falas reais.
+- Alma do jogador substitui o boneco humano.
+- NPCs ganharam sprites desenhados com mais detalhes.
+- Batalhas têm retrato visual original do inimigo.
+- Três áreas conectadas.
+- Três encontros: Morcego Nebuloso, Sentinela de Pedra e Guardião do Eclipse.
+- Padrões de projéteis diferentes.
+- LUTAR / AGIR / ITEM / POUPAR.
+- Save automático.
+- Vitória/derrota/POUPADO aceita E, Espaço, Enter e clique.
+- Controles móveis.
 
-## Controles
-- WASD / setas: mover
-- E / Espaço: interagir
-- Na batalha: esquerda/direita para escolher; E/Espaço/Enter para confirmar
+## Arquivos
+- index.html
+- style.css
+- script.js
+- assets/bat.svg
+- assets/sentinel.svg
+- assets/eclipse.svg
 
-## Publicação
-Coloque os quatro arquivos na raiz do repositório GitHub Pages.
+Todos os arquivos são originais e não usam sprites ou personagens de Undertale.
