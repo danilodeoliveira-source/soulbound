@@ -1,7 +1,1 @@
-{
-  "name": "Soulbound V5",
-  "version": "5.0.0",
-  "entry": "index.html",
-  "assets": "assets/",
-  "type": "static-web-game"
-}
+{"name":"Soulbound V6","short_name":"Soulbound","start_url":"./","display":"fullscreen","background_color":"#05030b","theme_color":"#5d2d91","lang":"pt-BR"}
