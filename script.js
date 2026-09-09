@@ -42,3 +42,4 @@ start.onclick=()=>{
     ctx.fillStyle='#fff';ctx.font='11px monospace';ctx.fillText(message,22,243);
   }
   loop();
+};
