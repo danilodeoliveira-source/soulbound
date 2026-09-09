@@ -45,6 +45,7 @@ async function toggleFullscreen(){
 const img = {};
 for (const n of ["vale","forest","cave","ruins","bat","sentinel","duelist","wisp","boss"]) {
   img[n] = new Image();
+  img[n].onerror = () => { img[n].__failed = true; };
   img[n].src = "assets/"+n+".svg";
 }
 
@@ -471,8 +472,10 @@ function drawBattleEnemy(b){
   const scale=b.type==="boss"?1.15:0.9;
   const w=b.type==="boss"?330:270, h=b.type==="boss"?250:190;
   ctx.globalAlpha=e.alpha;
-  if(im.complete)ctx.drawImage(im,480-w/2,165-h/2,w,h);
-  else drawEnemyFallback(480,240,b.type,scale);
+  if(im && im.complete && im.naturalWidth > 0 && !im.__failed){
+    try{ ctx.drawImage(im,480-w/2,165-h/2,w,h); }
+    catch(_){ drawEnemyFallback(480,240,b.type,scale); }
+  }else drawEnemyFallback(480,240,b.type,scale);
   if(e.hit>0){ctx.globalAlpha=Math.min(.75,e.hit*3);ctx.fillStyle="#fff";ctx.fillRect(300,120,360,250);}
   ctx.restore();
 }
@@ -532,8 +535,10 @@ function drawInteractionPrompt(){
 function drawWorld(){
   const m=maps[S.map], bg=mapImage();
   ctx.fillStyle="#182";ctx.fillRect(0,0,W,H);
-  if(bg.complete)ctx.drawImage(bg,0,0,W,H);
-  else {ctx.fillStyle="#234";ctx.fillRect(0,0,W,H)}
+  if(bg && bg.complete && bg.naturalWidth > 0 && !bg.__failed){
+    try{ ctx.drawImage(bg,0,0,W,H); }
+    catch(_){ drawFallbackMap(m.props); }
+  }else { drawFallbackMap(m.props); }
   // subtle animated lighting
   ctx.fillStyle="rgba(0,0,0,.12)";ctx.fillRect(0,0,W,H);
   for(let i=0;i<55;i++){
@@ -550,6 +555,14 @@ function drawWorld(){
   drawHUD();
   if(S.toastT>0){ctx.fillStyle="#000d";roundRect(360,20,240,34,8,true);txt(S.toast,480,43,16,"#fff","center")}
 }
+function drawFallbackMap(type){
+  const sky = type==="cave"?"#15192a":type==="ruins"?"#21162e":type==="forest"?"#173b2a":"#294a2d";
+  ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=type==="cave"?"#2d3855":"#315f35"; ctx.fillRect(0,300,W,240);
+  ctx.fillStyle="#4f3a2a"; ctx.fillRect(0,410,W,75);
+  for(let i=0;i<18;i++){ const x=(i*113)%940+10, y=100+(i*67)%300; ctx.fillStyle=type==="cave"?"#7182a8":"#4f8a4c"; ctx.fillRect(x,y,18,8); ctx.fillRect(x+6,y-12,7,12); }
+}
+
 function drawProps(type){
   if(type==="forest"){
     ctx.fillStyle="#5b402d";ctx.fillRect(95,180,20,130);ctx.fillRect(850,170,20,140);
@@ -599,7 +612,10 @@ function drawDialogue(){
   const n=getNPCs().find(q=>q.name===S.speaker);
   const boxY=355;
   ctx.fillStyle="#05050a";roundRect(55,boxY,850,145,10,true);strokeRect(55,boxY,850,145,"#fff");
-  if(n&&img[n.portrait]?.complete)ctx.drawImage(img[n.portrait],75,372,120,95);
+  const portrait=n?img[n.portrait]:null;
+  if(portrait && portrait.complete && portrait.naturalWidth > 0 && !portrait.__failed){
+    try{ctx.drawImage(portrait,75,372,120,95)}catch(_){}
+  }
   txt(S.speaker||"Alma",215,386,18,"#fff");
   const full=S.dialogues[S.dialogueIndex]||"";
   const visible=full.slice(0,Math.floor(S.dialogueChars));
