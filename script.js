@@ -1,254 +1,315 @@
-const canvas=document.getElementById('screen');
-const ctx=canvas.getContext('2d');
-const keys={};
-const pressed={};
-addEventListener('keydown',e=>{
+const canvas=document.getElementById("screen");
+const ctx=canvas.getContext("2d");
+const W=640,H=360;
+const keys={},pressed={};
+let screenConfirm=false;
+canvas.addEventListener("pointerdown",()=>{screenConfirm=true});
+
+addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();
   if(!keys[k]) pressed[k]=true;
   keys[k]=true;
-  if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k)) e.preventDefault();
+  if([" ","arrowup","arrowdown","arrowleft","arrowright"].includes(k))e.preventDefault();
 });
-addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
 
-document.querySelectorAll('#mobile-controls button').forEach(b=>{
+document.querySelectorAll("#mobile-controls button").forEach(b=>{
   const k=b.dataset.key;
-  b.addEventListener('pointerdown',e=>{e.preventDefault(); if(!keys[k]) pressed[k]=true; keys[k]=true});
-  b.addEventListener('pointerup',e=>{e.preventDefault(); keys[k]=false});
-  b.addEventListener('pointerleave',()=>keys[k]=false);
+  const down=e=>{e.preventDefault();if(!keys[k])pressed[k]=true;keys[k]=true};
+  const up=e=>{e.preventDefault();keys[k]=false};
+  b.addEventListener("pointerdown",down);
+  b.addEventListener("pointerup",up);
+  b.addEventListener("pointercancel",up);
+  b.addEventListener("pointerleave",up);
 });
 
-const W=640,H=360;
-let state='title', last=0, shake=0, save={};
-try{save=JSON.parse(localStorage.getItem('soulbound-save')||'{}')}catch(e){}
-const player={x:320,y:285,r:7,s:2.2,hp:20,maxHp:20};
-const npc={x:320,y:105};
-const soul={x:535,y:245,r:7,found:false};
-let message='Explore o vale. Encontre sua alma.';
-let dialogue=[];
+const saveKey="soulbound-v2-save";
+let data={};
+try{data=JSON.parse(localStorage.getItem(saveKey)||"{}")}catch(e){data={}}
+
+let state="title",last=0,notice="",shake=0;
+const player={x:320,y:285,r:7,s:2.5,hp:data.hp||20,maxHp:20};
+let map=data.map||"vale";
+let soulFound=!!data.soul;
+let courage=Number(data.courage||0);
+let pacifist=Number(data.pacifist||0);
+let dialogue=[],dialogueIndex=0,afterDialogue="world";
 let battle=null;
 
+const maps={
+ vale:{name:"Vale das Cinzas",bg:"#11182a",ground:"#1c2940"},
+ forest:{name:"Floresta Sussurrante",bg:"#0b1813",ground:"#173326"},
+ cave:{name:"Caverna do Eco",bg:"#17121e",ground:"#30233a"}
+};
+
+const npcs={
+ vale:[
+  {x:145,y:105,name:"Mira",lines:["Mira: “Você não parece daqui.”","Mira: “Se encontrar uma alma perdida, não a abandone.”"]},
+  {x:490,y:120,name:"Téo",lines:["Téo: “O norte leva para a floresta.”","Téo: “Mas os monstros ficam mais inquietos depois do pôr do sol.”"]}
+ ],
+ forest:[
+  {x:175,y:120,name:"Lume",lines:["Lume: “A floresta escuta suas escolhas.”","Lume: “Nem todo inimigo quer lutar.”"]},
+  {x:465,y:250,name:"Nara",lines:["Nara: “Há uma passagem escondida na caverna.”","Nara: “Procure a ponte de pedra.”"]}
+ ],
+ cave:[
+  {x:150,y:245,name:"Orin",lines:["Orin: “Você chegou longe.”","Orin: “O Guardião protege o coração da caverna.”"]},
+  {x:500,y:100,name:"Eco",lines:["Eco: “Força sem escolha é apenas ruído.”"]}
+ ]
+};
+
+const encounters={
+ forest:{name:"Morcego Nebuloso",hp:18,maxHp:18,pattern:"zigzag"},
+ cave:{name:"Sentinela de Pedra",hp:25,maxHp:25,pattern:"walls"},
+ boss:{name:"Guardião do Eclipse",hp:45,maxHp:45,pattern:"rain",boss:true}
+};
+
 function saveGame(){
-  localStorage.setItem('soulbound-save',JSON.stringify({soul:soul.found,hp:player.hp,progress:state}));
+ localStorage.setItem(saveKey,JSON.stringify({
+  hp:player.hp,map,soul:soulFound,courage,pacifist
+ }));
 }
-function say(lines,next){
-  dialogue=[...lines];
-  state='dialogue';
-  battle=null;
-  stateNext=next||'world';
+function resetSave(){
+ localStorage.removeItem(saveKey);
+ data={};player.hp=20;map="vale";soulFound=false;courage=0;pacifist=0;
+ player.x=320;player.y=285;notice="Novo jogo.";
 }
-let stateNext='world';
+function move(dx,dy,dt){
+ if(dx&&dy){dx*=.7071;dy*=.7071}
+ player.x=Math.max(25,Math.min(615,player.x+dx*player.s*dt*60));
+ player.y=Math.max(58,Math.min(335,player.y+dy*player.s*dt*60));
+}
+function interact(){
+ const list=npcs[map]||[];
+ for(const n of list){
+  if(Math.hypot(player.x-n.x,player.y-n.y)<32){
+   dialogue=[...n.lines];dialogueIndex=0;afterDialogue="world";state="dialogue";return;
+  }
+ }
+ if(map==="vale"&&!soulFound&&Math.hypot(player.x-535,player.y-245)<30){
+  soulFound=true;player.hp=Math.min(player.maxHp,player.hp+5);
+  dialogue=["Você encontrou sua alma.","Seu coração ficou mais forte. HP +5."];
+  dialogueIndex=0;afterDialogue="world";state="dialogue";saveGame();return;
+ }
+ if(map==="vale"&&soulFound&&player.y<75){map="forest";player.x=320;player.y=315;notice="Você entrou na Floresta Sussurrante.";saveGame();return}
+ if(map==="forest"&&player.y<65){map="cave";player.x=320;player.y=315;notice="A passagem leva à Caverna do Eco.";saveGame();return}
+ if(map==="forest"&&player.x>600){map="vale";player.x=35;player.y=180;notice="Você voltou ao vale.";saveGame();return}
+ if(map==="cave"&&player.y<75){startBattle("boss");return}
+}
 
-function startGame(){
-  player.x=320;player.y=285;player.hp=save.hp||20;
-  soul.found=!!save.soul;
-  message=soul.found?'A alma está com você. Siga até o norte.':'Explore o vale. Encontre sua alma.';
-  state='world';
+function randomEncounter(){
+ if(map==="forest"&&Math.random()<.0022)startBattle("forest");
+ if(map==="cave"&&Math.random()<.0028)startBattle("cave");
 }
-function beginBattle(){
-  battle={enemy:'Guardião Sombrio',hp:30,maxHp:30,turn:0,phase:'menu',choice:0,shots:[],timer:0,enemyTimer:0};
-  state='battle';
+function startBattle(type){
+ const e=encounters[type];
+ battle={
+  type,enemy:e.name,hp:e.hp,maxHp:e.maxHp,pattern:e.pattern,boss:!!e.boss,
+  phase:"menu",choice:0,turn:0,timer:0,shots:[],
+  heart:{x:320,y:265,r:7},acted:false
+ };
+ state="battle";notice="";
 }
-function startNew(){
-  localStorage.removeItem('soulbound-save');
-  save={}; soul.found=false; player.hp=20; startGame();
-}
-
-let options=['LUTAR','AGIR','ITEM','POUPAR'];
+const options=["LUTAR","AGIR","ITEM","POUPAR"];
 
 function update(dt){
-  if(state==='title'){
-    if(pressed.enter||pressed[' ']) startGame();
-    return;
+ if(state==="title"){
+  if(pressed.enter||pressed[" "]){state="world";notice="Explore o mundo. Aperte E perto de pessoas e objetos.";saveGame()}
+  if(pressed.r){resetSave()}
+  return;
+ }
+ if(state==="dialogue"){
+  if(pressed.e||pressed[" "]||pressed.enter){
+   dialogueIndex++;
+   if(dialogueIndex>=dialogue.length){state=afterDialogue;notice="";saveGame()}
   }
-  if(state==='dialogue'){
-    if(pressed[' ' ]||pressed.e||pressed.enter){
-      dialogue.shift();
-      if(!dialogue.length){state=stateNext; message='';}
-    }
-    return;
-  }
-  if(state==='world'){
-    let dx=(keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.a?1:0);
-    let dy=(keys.arrowdown||keys.s?1:0)-(keys.arrowup||keys.w?1:0);
-    if(dx&&dy){dx*=.707;dy*=.707}
-    player.x=Math.max(25,Math.min(W-25,player.x+dx*player.s*dt*60));
-    player.y=Math.max(58,Math.min(H-25,player.y+dy*player.s*dt*60));
-
-    const dn=Math.hypot(player.x-npc.x,player.y-npc.y);
-    const ds=Math.hypot(player.x-soul.x,player.y-soul.y);
-    if(pressed.e||pressed[' ']){
-      if(dn<32) say(['Estranho: “Toda alma guarda uma escolha.”','Estranho: “A sua ainda está adormecida.”']);
-      else if(!soul.found&&ds<28){
-        soul.found=true;
-        player.hp=Math.min(player.maxHp,player.hp+5);
-        saveGame();
-        say(['Você encontrou um fragmento de alma.','Seu coração ficou mais forte. HP +5.']);
-      } else if(soul.found&&player.y<80){
-        beginBattle();
-      }
-    }
-    if(soul.found && player.y<78){message='Uma presença bloqueia o caminho. Aperte E.'}
-    else if(!soul.found && ds<45){message='Há algo brilhando... aproxime-se e aperte E.'}
-    else if(dn<45){message='Aperte E para conversar.'}
-    else message=soul.found?'Vá para o norte.':'Explore o vale. Encontre sua alma.';
-  }
-
-  if(state==='battle') updateBattle(dt);
+  return;
+ }
+ if(state==="world"){
+  let dx=(keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.a?1:0);
+  let dy=(keys.arrowdown||keys.s?1:0)-(keys.arrowup||keys.w?1:0);
+  move(dx,dy,dt);
+  if(pressed.e||pressed[" "])interact();
+  randomEncounter();
+  return;
+ }
+ if(state==="battle")updateBattle(dt);
 }
 
 function updateBattle(dt){
-  if(battle.phase==='menu'){
-    if(pressed.arrowleft||pressed.a) battle.choice=(battle.choice+3)%4;
-    if(pressed.arrowright||pressed.d) battle.choice=(battle.choice+1)%4;
-    if(pressed.e||pressed[' ']||pressed.enter){
-      const c=options[battle.choice];
-      if(c==='LUTAR'){
-        const dmg=5+Math.floor(Math.random()*5);
-        battle.hp=Math.max(0,battle.hp-dmg);
-        message='Você atacou e causou '+dmg+' de dano!';
-        if(battle.hp<=0){battle.phase='win';return}
-        battle.phase='enemy';battle.timer=0;
-      } else if(c==='AGIR'){
-        message='Você observou o Guardião. Ele parece hesitar.';
-        battle.phase='enemy';battle.timer=0;
-      } else if(c==='ITEM'){
-        if(player.hp<player.maxHp){player.hp=Math.min(player.maxHp,player.hp+8);message='Você usou uma essência. HP +8.'}
-        else message='Seu HP já está cheio.';
-        battle.phase='enemy';battle.timer=0;
-      } else {
-        if(battle.turn>=1){battle.phase='spared';}
-        else {message='O Guardião não confia em você ainda.';battle.phase='enemy';battle.timer=0}
-      }
-    }
-  }else if(battle.phase==='enemy'){
-    battle.timer+=dt;
-    if(battle.timer>0.55 && battle.shots.length<5 && battle.timer<2.8){
-      battle.shots.push({x:100+Math.random()*440,y:205,r:5,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2});
-    }
-    for(const s of battle.shots){s.x+=s.vx*dt*60;s.y+=s.vy*dt*60}
-    battle.shots=battle.shots.filter(s=>s.x>75&&s.x<565&&s.y>160&&s.y<320);
-    const heart={x:320,y:270,r:7};
-    if(battle.timer>0.6){
-      let hx=(keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.a?1:0);
-      let hy=(keys.arrowdown||keys.s?1:0)-(keys.arrowup||keys.w?1:0);
-      heart.x=Math.max(100,Math.min(540,heart.x+hx*2.5*dt*60));
-      heart.y=Math.max(180,Math.min(315,heart.y+hy*2.5*dt*60));
-      battle.heart=heart;
-      for(const s of battle.shots){
-        if(Math.hypot(s.x-heart.x,s.y-heart.y)<s.r+heart.r){player.hp--;shake=8;s.x=-99}
-      }
-    }
-    if(player.hp<=0){battle.phase='lose'}
-    if(battle.timer>4){battle.turn++;battle.shots=[];battle.phase='menu';message='Seu turno.'}
+ if(battle.phase==="menu"){
+  if(pressed.arrowleft||pressed.a)battle.choice=(battle.choice+3)%4;
+  if(pressed.arrowright||pressed.d)battle.choice=(battle.choice+1)%4;
+  if(pressed.e||pressed[" "]||pressed.enter){
+   const c=options[battle.choice];
+   if(c==="LUTAR"){
+    const dmg=5+Math.floor(Math.random()*6);
+    battle.hp=Math.max(0,battle.hp-dmg);
+    courage++;
+    notice=`Você causou ${dmg} de dano.`;
+    if(battle.hp<=0){battle.phase="win";saveGame();return}
+    battle.phase="enemy";battle.timer=0;battle.shots=[];
+   }else if(c==="AGIR"){
+    pacifist++;
+    notice=battle.boss?"Você encara o Guardião sem atacar.":"Você observou o inimigo. Ele hesitou.";
+    battle.phase="enemy";battle.timer=0;battle.shots=[];
+   }else if(c==="ITEM"){
+    if(player.hp<player.maxHp){player.hp=Math.min(player.maxHp,player.hp+8);notice="Você usou uma essência. HP +8."}
+    else notice="Seu HP já está cheio.";
+    battle.phase="enemy";battle.timer=0;battle.shots=[];
+   }else{
+    if(battle.turn>=1||pacifist>=2){battle.phase="spared";saveGame();return}
+    notice="Ele ainda não confia em você.";
+    battle.phase="enemy";battle.timer=0;battle.shots=[];
+   }
   }
-  if(battle.phase==='win'||battle.phase==='spared'){
-    if(pressed[' ']||pressed.e||pressed.enter){
-      player.x=320;player.y=300;saveGame();state='world';
-      message=battle.phase==='win'?'O caminho foi aberto pela força da sua alma.':'O Guardião abaixou a arma. Uma porta se abriu.';
-      battle=null;
-    }
+  return;
+ }
+ if(battle.phase==="enemy"){
+  battle.timer+=dt;
+  spawnPattern(dt);
+  for(const s of battle.shots){s.x+=s.vx*dt*60;s.y+=s.vy*dt*60}
+  battle.shots=battle.shots.filter(s=>s.x>-30&&s.x<670&&s.y>145&&s.y<330);
+  const h=battle.heart;
+  let hx=(keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.a?1:0);
+  let hy=(keys.arrowdown||keys.s?1:0)-(keys.arrowup||keys.w?1:0);
+  const speed=battle.boss?225:215;
+  if(hx&&hy){hx*=.7071;hy*=.7071}
+  h.x+=hx*speed*dt;h.y+=hy*speed*dt;
+  h.x=Math.max(83+h.r,Math.min(557-h.r,h.x));
+  h.y=Math.max(163+h.r,Math.min(312-h.r,h.y));
+  for(const s of battle.shots){
+   if(Math.hypot(s.x-h.x,s.y-h.y)<s.r+h.r){
+    if(!s.hit){s.hit=true;player.hp--;shake=6}
+   }
   }
-  if(battle.phase==='lose' && (pressed[' ']||pressed.e||pressed.enter)){
-    player.hp=20;state='world';message='Você voltou ao vale. Tente novamente.';battle=null;
+  if(player.hp<=0){battle.phase="lose";return}
+  if(battle.timer>4.2){
+   battle.turn++;battle.phase="menu";battle.shots=[];notice="Seu turno.";saveGame();
   }
+  return;
+ }
+ if(battle.phase==="win"||battle.phase==="spared"){
+  // Resultado: E, Espaço, Enter ou clique/toque.
+  if(pressed.e||pressed[" "]||pressed.enter||screenConfirm){
+   screenConfirm=false;
+   player.hp=Math.min(player.maxHp,player.hp+3);
+   if(battle.boss){map="cave";player.x=320;player.y=300;notice="O coração da caverna foi protegido."}
+   else {player.x=320;player.y=300;notice="O caminho continua."}
+   battle=null;state="world";saveGame();
+  }
+  return;
+ }
+ if(battle.phase==="lose"){
+  if(pressed.e||pressed[" "]||pressed.enter||screenConfirm){
+   screenConfirm=false;
+   player.hp=10;battle=null;state="world";player.x=320;player.y=300;notice="Você voltou com 10 HP. Tente outra vez.";
+   saveGame();
+  }
+ }
+}
+
+function spawnPattern(dt){
+ const t=battle.timer;
+ if(battle.pattern==="zigzag"){
+  if(Math.floor(t*5)!==Math.floor((t-dt)*5)){
+   battle.shots.push({x:90+Math.random()*460,y:160,r:5,vx:(Math.random()-.5)*2,vy:1.8});
+  }
+ }else if(battle.pattern==="walls"){
+  if(Math.floor(t*3)!==Math.floor((t-dt)*3)){
+   const side=Math.random()<.5;
+   battle.shots.push(side
+    ?{x:82,y:170+Math.random()*135,r:6,vx:2.6,vy:0}
+    :{x:558,y:170+Math.random()*135,r:6,vx:-2.6,vy:0});
+  }
+ }else{
+  if(Math.floor(t*8)!==Math.floor((t-dt)*8)){
+   battle.shots.push({x:90+Math.random()*460,y:158,r:4,vx:(Math.random()-.5)*1.2,vy:2.5+Math.random()*1.5});
+  }
+  if(Math.floor(t*2)!==Math.floor((t-dt)*2)){
+   battle.shots.push({x:90,y:235+Math.sin(t*4)*55,r:5,vx:3.2,vy:0});
+  }
+ }
 }
 
 function draw(){
-  ctx.clearRect(0,0,W,H);
-  if(state==='title'){drawTitle();return}
-  if(state==='world'||state==='dialogue'){drawWorld();if(state==='dialogue')drawDialogue();return}
-  if(state==='battle'){drawBattle();return}
+ ctx.save();
+ if(shake){ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);shake*=.88;if(shake<.2)shake=0}
+ ctx.clearRect(0,0,W,H);
+ if(state==="title")drawTitle();
+ else if(state==="world"||state==="dialogue"){drawWorld();if(state==="dialogue")drawDialogue()}
+ else drawBattle();
+ ctx.restore();
+ for(const k in pressed)delete pressed[k];
+ requestAnimationFrame(loop);
 }
-
+function text(t,x,y,size=13,align="left"){
+ ctx.font=`${size}px monospace`;ctx.textAlign=align;ctx.fillStyle="#fff";ctx.fillText(t,x,y)
+}
 function drawTitle(){
-  ctx.fillStyle='#07070d';ctx.fillRect(0,0,W,H);
-  ctx.textAlign='center';
-  ctx.fillStyle='#fff';ctx.font='bold 58px monospace';ctx.fillText('SOULBOUND',W/2,120);
-  ctx.font='18px monospace';ctx.fillStyle='#aaa';ctx.fillText('Uma aventura entre almas',W/2,155);
-  ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(250,190,140,48);
-  ctx.font='bold 17px monospace';ctx.fillStyle='#fff';ctx.fillText('COMEÇAR',W/2,221);
-  ctx.font='13px monospace';ctx.fillStyle='#777';ctx.fillText('ENTER ou ESPAÇO',W/2,275);
-  ctx.textAlign='left';
+ ctx.fillStyle="#07070d";ctx.fillRect(0,0,W,H);
+ text("SOULBOUND",W/2,105,54,"center");ctx.fillStyle="#aaa";
+ text("V2 — O Vale, a Floresta e a Caverna",W/2,140,15,"center");
+ ctx.strokeStyle="#fff";ctx.strokeRect(245,185,150,50);text("COMEÇAR",W/2,216,17,"center");
+ text("WASD / SETAS • E / ESPAÇO",W/2,265,12,"center");
+ text("R reinicia o save",W/2,288,11,"center");
 }
-
 function drawWorld(){
-  ctx.fillStyle='#0d1020';ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#18203a';ctx.fillRect(0,155,W,205);
-  ctx.strokeStyle='#293457';ctx.lineWidth=3;
-  for(let x=-40;x<W;x+=32){ctx.beginPath();ctx.moveTo(x,155);ctx.lineTo(x+30,H);ctx.stroke()}
-  ctx.fillStyle='#101010';ctx.fillRect(10,10,620,34);
-  ctx.fillStyle='#fff';ctx.font='13px monospace';ctx.fillText(`SOULBOUND  •  HP ${player.hp}/${player.maxHp}`,20,32);
-
-  // altar/soul
-  if(!soul.found){
-    ctx.fillStyle='#493b80';ctx.fillRect(soul.x-10,soul.y+5,20,5);
-    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(soul.x,soul.y,soul.r+3,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#e44';ctx.beginPath();ctx.moveTo(soul.x,soul.y-5);ctx.lineTo(soul.x+5,soul.y);ctx.lineTo(soul.x,soul.y+5);ctx.lineTo(soul.x-5,soul.y);ctx.fill();
-  }
-  // NPC
-  ctx.fillStyle='#633';ctx.fillRect(npc.x-8,npc.y-10,16,24);
-  ctx.fillStyle='#f5c6a5';ctx.beginPath();ctx.arc(npc.x,npc.y-16,7,0,Math.PI*2);ctx.fill();
-  // player
-  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#e44';ctx.beginPath();ctx.arc(player.x,player.y,3,0,Math.PI*2);ctx.fill();
-
-  ctx.fillStyle='#000';ctx.fillRect(14,312,612,38);
-  ctx.strokeStyle='#fff';ctx.strokeRect(14,312,612,38);
-  ctx.fillStyle='#fff';ctx.font='12px monospace';ctx.fillText(message,25,336);
+ const m=maps[map];ctx.fillStyle=m.bg;ctx.fillRect(0,0,W,H);
+ ctx.fillStyle=m.ground;ctx.fillRect(0,55,W,305);
+ // decoração original simples
+ for(let i=0;i<22;i++){
+  const x=(i*83+37)%620,y=75+(i*47)%250;
+  ctx.fillStyle=map==="forest"?"#28543a":map==="cave"?"#4a3555":"#30405c";
+  ctx.fillRect(x,y,5,5);
+ }
+ ctx.fillStyle="#09090d";ctx.fillRect(10,10,620,34);
+ text(`${m.name}   •   HP ${player.hp}/${player.maxHp}`,20,32,12);
+ if(map==="vale"&&!soulFound){
+  ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(535,245,10,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#e44";ctx.beginPath();ctx.moveTo(535,238);ctx.lineTo(542,245);ctx.lineTo(535,252);ctx.lineTo(528,245);ctx.fill();
+ }
+ for(const n of npcs[map]){
+  ctx.fillStyle=map==="forest"?"#416b50":map==="cave"?"#72527b":"#70454c";ctx.fillRect(n.x-8,n.y-10,16,24);
+  ctx.fillStyle="#f1c5a8";ctx.beginPath();ctx.arc(n.x,n.y-16,7,0,Math.PI*2);ctx.fill();
+ }
+ ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#e33";ctx.beginPath();ctx.arc(player.x,player.y,3,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#000c";ctx.fillRect(14,310,612,38);ctx.strokeStyle="#fff";ctx.strokeRect(14,310,612,38);
+ text(notice||"Explore. E para interagir.",25,334,11);
 }
-
 function drawDialogue(){
-  ctx.fillStyle='#000e';ctx.fillRect(40,80,560,190);
-  ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.strokeRect(40,80,560,190);
-  ctx.fillStyle='#fff';ctx.font='16px monospace';
-  const line=dialogue[0]||'';
-  wrapText(line,65,125,510,25);
-  ctx.font='11px monospace';ctx.fillStyle='#aaa';ctx.fillText('ESPAÇO / E para continuar',65,245);
+ ctx.fillStyle="#000e";ctx.fillRect(38,75,564,195);ctx.strokeStyle="#fff";ctx.lineWidth=3;ctx.strokeRect(38,75,564,195);
+ wrap(dialogue[dialogueIndex]||"",62,120,515,23);text("E / ESPAÇO para continuar",62,245,11);ctx.textAlign="left";
 }
-function wrapText(t,x,y,max,lh){
-  let words=t.split(' '),line='';
-  for(const w of words){let test=line?line+' '+w:w;if(ctx.measureText(test).width>max){ctx.fillText(line,x,y);y+=lh;line=w}else line=test}
-  ctx.fillText(line,x,y);
+function wrap(t,x,y,max,lh){
+ const words=t.split(" ");let line="";
+ for(const w of words){const test=line?line+" "+w:w;if(ctx.measureText(test).width>max){ctx.fillText(line,x,y);y+=lh;line=w}else line=test}
+ ctx.fillText(line,x,y);
 }
-
 function drawBattle(){
-  ctx.fillStyle='#08080d';ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#fff';ctx.font='bold 18px monospace';ctx.fillText('GUARDIÃO SOMBRIO',30,32);
-  ctx.fillText(`HP ${player.hp}/${player.maxHp}`,470,32);
-  ctx.fillStyle='#400';ctx.fillRect(250,65,140,12);
-  ctx.fillStyle='#e55';ctx.fillRect(250,65,140*(battle.hp/battle.maxHp),12);
-
-  if(battle.phase==='menu'||battle.phase==='enemy'){
-    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(75,155,490,165);
-    if(battle.phase==='enemy'){
-      const h=battle.heart||{x:320,y:270,r:7};
-      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(h.x,h.y,h.r+2,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#e33';ctx.beginPath();ctx.arc(h.x,h.y,h.r-1,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#f55';
-      for(const s of battle.shots){ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill()}
-      ctx.font='11px monospace';ctx.fillStyle='#aaa';ctx.fillText('DESVIE DOS PROJÉTEIS!',225,145);
-    }else{
-      ctx.fillStyle='#fff';ctx.font='14px monospace';ctx.fillText(message||'O que você fará?',95,185);
-      options.forEach((o,i)=>{
-        ctx.strokeStyle=i===battle.choice?'#fff':'#555';
-        ctx.strokeRect(95+i*115,245,100,40);
-        ctx.fillStyle=i===battle.choice?'#fff':'#aaa';ctx.fillText(o,110+i*115,270);
-      });
-    }
+ ctx.fillStyle="#08080d";ctx.fillRect(0,0,W,H);
+ text(battle.enemy,25,31,17);text(`HP ${player.hp}/${player.maxHp}`,470,31,13);
+ ctx.fillStyle="#400";ctx.fillRect(250,52,140,11);ctx.fillStyle="#e55";ctx.fillRect(250,52,140*(battle.hp/battle.maxHp),11);
+ if(battle.phase==="menu"||battle.phase==="enemy"){
+  ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.strokeRect(75,155,490,165);
+  if(battle.phase==="enemy"){
+   ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(battle.heart.x,battle.heart.y,9,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#e33";ctx.beginPath();ctx.arc(battle.heart.x,battle.heart.y,6,0,Math.PI*2);ctx.fill();
+   for(const s of battle.shots){ctx.fillStyle=s.hit?"#333":"#f55";ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill()}
+   text("DESVIE!  WASD / SETAS",320,145,11,"center");
   }else{
-    ctx.textAlign='center';ctx.font='bold 28px monospace';
-    ctx.fillStyle='#fff';
-    if(battle.phase==='win')ctx.fillText('VITÓRIA!',W/2,180);
-    if(battle.phase==='spared')ctx.fillText('POUPADO!',W/2,180);
-    if(battle.phase==='lose')ctx.fillText('VOCÊ CAIU...',W/2,180);
-    ctx.font='13px monospace';ctx.fillStyle='#aaa';ctx.fillText('ESPAÇO / E para continuar',W/2,225);ctx.textAlign='left';
+   text(notice||"O que você fará?",95,185,13);
+   options.forEach((o,i)=>{
+    ctx.strokeStyle=i===battle.choice?"#fff":"#555";ctx.strokeRect(92+i*116,245,102,40);
+    text(o,143+i*116,270,12,"center");
+   });
   }
+ }else{
+  text(battle.phase==="win"?"VITÓRIA!":battle.phase==="spared"?"POUPADO!":"VOCÊ CAIU...",320,180,29,"center");
+  ctx.fillStyle="#aaa";text("E / ESPAÇO / ENTER ou CLIQUE para continuar",320,225,11,"center");
+ }
 }
-
 function loop(t){
-  const dt=Math.min(.033,(t-last)/1000||.016);last=t;
-  update(dt);draw();
-  for(const k in pressed) delete pressed[k];
-  requestAnimationFrame(loop);
+ const dt=Math.min(.033,(t-last)/1000||.016);last=t;update(dt);draw();
 }
 requestAnimationFrame(loop);
