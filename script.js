@@ -297,7 +297,23 @@ function battleInput(){
     }
     return;
   }
-  if(b.phase==="victory"||b.phase==="defeat"){if(confirm){finishBattle(b.phase==="victory");}return;}
+  if(b.phase==="victory"||b.phase==="defeat"){
+    if(confirm){
+      const won=b.phase==="victory";
+      const type=b.type;
+      S.battle=null;
+      S.mode="world";
+      S.player.x=480;
+      S.player.y=360;
+      S.transition=0;
+      S.flash=0;
+      S.shake=0;
+      saveGame();
+      toast(won ? "Vitória! A área está segura." : "Você poupou o inimigo.");
+      sound("confirm");
+    }
+    return;
+  }
   if(b.phase==="fight"){
     if(confirm){resolveFight();return}
   }
