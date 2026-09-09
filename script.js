@@ -1,15 +1,15 @@
 (() => {
 "use strict";
 
-/* SOULBOUND V8 — Galeria de Cenas. Direção visual neon pixel-art baseada na referência fornecida, com efeitos cinematográficos e UI aprimorada. */
+/* SOULBOUND V9 — Eclipse Eterno: Mundo Vivo. Direção visual neon pixel-art baseada na referência fornecida, com efeitos cinematográficos e UI aprimorada. */
 
 const canvas = document.getElementById("screen");
 const ctx = canvas.getContext("2d");
 ctx.imageSmoothingEnabled = false;
 const W = canvas.width, H = canvas.height;
 const TAU = Math.PI * 2;
-const SAVE_KEY = "soulbound-v8-save";
-const LEGACY_SAVE_KEYS = ["soulbound-v7-save", "soulbound-v6-save", "soulbound-v5-save", "soulbound-v5-1-save"];
+const SAVE_KEY = "soulbound-v9-save";
+const LEGACY_SAVE_KEYS = ["soulbound-v8-save", "soulbound-v7-save", "soulbound-v6-save", "soulbound-v5-save", "soulbound-v5-1-save"];
 
 const keys = Object.create(null);
 const pressed = Object.create(null);
@@ -45,6 +45,7 @@ canvas.addEventListener("pointerdown", ev=>{
     if(b && (b.phase==="item"||b.phase==="act") && pointer.x<380 && pointer.y>430){ pressed.x=true; return; }
     pressed.e=true;
   } else if(S.mode==="dialogue") { pressed.e=true; }
+  else if(S.mode==="journal"||S.mode==="achievements"||S.mode==="memory"){pressed.x=true;}
 });
 canvas.addEventListener("pointerup",()=>pointer.down=false);
 
@@ -95,43 +96,60 @@ const S = {
   reduceMotion:false, muted:false,
   battle:null, toast:"", toastT:0,
   choices:0, option:0, pause:false,
-  bannerT:0, bannerShown:false, lastMap:"vale", ambienceSeed:Math.random()*1000, scenePulse:0
+  bannerT:0, bannerShown:false, lastMap:"vale", ambienceSeed:Math.random()*1000, scenePulse:0,
+  quiz:null, memoryIndex:0, journalTab:0, journalIndex:0, overlayTitle:"",
+  flags:{route:"balanced",lanterns:0,fragments:0,secretRooms:0,quizzes:0,inspected:0,helped:false},
+  stats:{battles:0,kills:0,spares:0,perfectFights:0,acts:0},
+  memories:[], achievements:[], quests:{cartographer:false,lanterns:false,quiz:false,memory:false,blacksmith:false},
+  inspected:{}, secretSeen:{}, discovered:[]
 };
 
 const maps = {
   vale:{name:"Vale das Cinzas",bg:"scene02-vale",spawn:{x:480,y:420},exits:{north:"forest"},npcs:[
     {x:420,y:350,name:"Lívia",portrait:"npc-livia",lines:["Olá, viajante...","Bem-vindo ao Vale das Cinzas. Aqui a paz ainda existe.","Mas o eclipse está mudando tudo." ]},
-    {x:690,y:335,name:"Orus",portrait:"npc-orus",lines:["Você não parece daqui...","Cuidado com o que a floresta sussurra.","Ela escuta tudo." ]}
+    {x:690,y:335,name:"Orus",portrait:"npc-orus",lines:["Você não parece daqui...","Cuidado com o que a floresta sussurra.","Ela escuta tudo." ]},
+    {x:170,y:275,name:"Milo",portrait:"npc-seren",lines:["Sou Milo, o cartógrafo.","Marquei caminhos que não aparecem em mapa nenhum.","Encontre três pontos secretos e eu completo seu mapa."],quest:"cartographer"},
+    {x:820,y:420,name:"Téo",portrait:"npc-kafro",lines:["Meu martelo conserta mais do que metal.","Traga fragmentos e posso melhorar seu equipamento.","Mas quero um favor primeiro: encontre a forja antiga."],quest:"blacksmith"}
   ],props:"vale"},
   forest:{name:"Floresta Sussurrante",bg:"scene03-forest",spawn:{x:480,y:440},exits:{north:"cave",south:"vale"},npcs:[
     {x:700,y:300,name:"Orus",portrait:"npc-orus",lines:["O caminho muda quando ninguém olha.","As árvores guardam nomes esquecidos.","Siga as luzes azuis." ]},
-    {x:300,y:355,name:"Lívia",portrait:"npc-livia",lines:["A floresta não gosta de pressa.","Escute antes de agir.","Há uma ponte escondida ao norte." ]}
+    {x:300,y:355,name:"Lívia",portrait:"npc-livia",lines:["A floresta não gosta de pressa.","Escute antes de agir.","Há uma ponte escondida ao norte." ]},
+    {x:820,y:255,name:"Ari",portrait:"npc-seren",lines:["Eu coleciono histórias que as árvores esquecem.","Responda ao meu quiz e descubra uma memória rara."],quest:"quiz"},
+    {x:150,y:420,name:"Guardiã das Lanternas",portrait:"npc-zyra",lines:["Cinco lanternas se apagaram nesta floresta.","Acenda todas e o caminho do crepúsculo ficará seguro."],quest:"lanterns"}
   ],props:"forest"},
   cave:{name:"Caverna do Eco",bg:"scene04-cave",spawn:{x:480,y:450},exits:{north:"ruins",south:"forest"},npcs:[
     {x:250,y:320,name:"Kafro",portrait:"npc-kafro",lines:["Ah... um viajante.","A caverna muda... assim como o seu destino.","O eco costuma responder com verdades." ]},
-    {x:760,y:360,name:"Zyra",portrait:"npc-zyra",lines:["Você chegou longe.","O eclipse não foi um fim.","O que era luz, agora é sombra." ]}
+    {x:760,y:360,name:"Zyra",portrait:"npc-zyra",lines:["Você chegou longe.","O eclipse não foi um fim.","O que era luz, agora é sombra." ]},
+    {x:120,y:420,name:"Homem Sem Rosto",portrait:"npc-orus",lines:["Você já me viu antes.","Só não consegue lembrar onde.","Quando a memória faltar, siga o eco."],quest:"faceless"}
   ],props:"cave"},
   ruins:{name:"Ruínas do Eclipse",bg:"scene05-ruins",spawn:{x:480,y:450},exits:{north:"lake",south:"cave"},npcs:[
     {x:730,y:330,name:"Zyra",portrait:"npc-zyra",lines:["As ruínas lembram de tudo.","Não confie no silêncio do Guardião.","A próxima passagem está além do lago." ]}
   ],props:"ruins"},
   lake:{name:"Lago das Memórias",bg:"scene06-lake",spawn:{x:480,y:450},exits:{north:"twilight",south:"ruins"},npcs:[
     {x:240,y:330,name:"Seren",portrait:"npc-seren",lines:["Este lago guarda as memórias de todos que já passaram por aqui.","Você também deixará a sua.","O brilho na água aponta para o leste."]},
-    {x:700,y:350,name:"Lívia",portrait:"npc-livia",lines:["Algumas lembranças doem.","Outras mostram o caminho.","Não deixe o eclipse escolher por você."]}
+    {x:700,y:350,name:"Lívia",portrait:"npc-livia",lines:["Algumas lembranças doem.","Outras mostram o caminho.","Não deixe o eclipse escolher por você." ]},
+    {x:130,y:240,name:"Nara",portrait:"npc-zyra",lines:["Eu troco memórias por objetos esquecidos.","Não é barato, mas vale o preço de uma lembrança."],quest:"collector"},
+    {x:820,y:445,name:"Eris",portrait:"npc-livia",lines:["A água mostra possibilidades.","Uma escolha agora pode mudar quem aparece depois."],quest:"eris"}
   ],props:"forest"},
   twilight:{name:"Vila do Crepúsculo",bg:"area07-twilight",spawn:{x:480,y:440},exits:{north:"prism",south:"lake"},npcs:[
     {x:300,y:340,name:"Kafro",portrait:"npc-kafro",lines:["As lanternas apagam quando o céu escurece.","A vila sobrevive escondendo seus sonhos.","Suba a trilha de cristais."]},
-    {x:720,y:330,name:"Seren",portrait:"npc-seren",lines:["Aqui todos lembram do eclipse.","Mas ninguém conta a mesma história."]}
+    {x:720,y:330,name:"Seren",portrait:"npc-seren",lines:["Aqui todos lembram do eclipse.","Mas ninguém conta a mesma história."]},
+    {x:160,y:290,name:"Téo",portrait:"npc-kafro",lines:["A oficina precisa de três brasas azuis.","Traga-as e eu reforço sua alma."],quest:"forge"}
   ],props:"vale"},
   prism:{name:"Bosque Prismático",bg:"area08-prism",spawn:{x:480,y:440},exits:{north:"sanctuary",south:"twilight"},npcs:[
     {x:250,y:340,name:"Lívia",portrait:"npc-livia",lines:["As cores aqui não são só cores.","Cada cristal guarda uma escolha.","Escolha com calma."]},
-    {x:760,y:340,name:"Zyra",portrait:"npc-zyra",lines:["A luz prismática fere a sombra.","É por isso que o eclipse a teme."]}
+    {x:760,y:340,name:"Zyra",portrait:"npc-zyra",lines:["A luz prismática fere a sombra.","É por isso que o eclipse a teme."]},
+    {x:150,y:430,name:"Nara",portrait:"npc-zyra",lines:["Cada cristal guarda uma decisão.","Você pode olhar uma memória escondida aqui."],quest:"memory"}
   ],props:"forest"},
   sanctuary:{name:"Santuário do Eclipse",bg:"area09-sanctuary",spawn:{x:480,y:440},exits:{north:"source",south:"prism"},npcs:[
     {x:280,y:330,name:"Orus",portrait:"npc-orus",lines:["Aqui as escolhas pesam mais.","Um guardião antigo desperta ao norte."]},
-    {x:730,y:330,name:"Kafro",portrait:"npc-kafro",lines:["Não precisa vencer tudo com força.","Às vezes sobreviver já é uma resposta."]}
+    {x:730,y:330,name:"Kafro",portrait:"npc-kafro",lines:["Não precisa vencer tudo com força.","Às vezes sobreviver já é uma resposta."]},
+    {x:150,y:390,name:"Milo",portrait:"npc-seren",lines:["O santuário tem uma sala atrás da estátua.","Mas o símbolo só reage a quem explorou o capítulo."],quest:"secret"}
   ],props:"ruins"},
   source:{name:"Nascente das Memórias",bg:"area10-source",spawn:{x:480,y:440},exits:{south:"sanctuary"},npcs:[
-    {x:690,y:340,name:"Seren",portrait:"npc-seren",lines:["A nascente mostra o que você pode se tornar.","O eclipse chegou ao fim do caminho.","Agora falta decidir como ele termina."]}
+    {x:690,y:340,name:"Seren",portrait:"npc-seren",lines:["A nascente mostra o que você pode se tornar.","O eclipse chegou ao fim do caminho.","Agora falta decidir como ele termina." ]},
+    {x:250,y:315,name:"Eris",portrait:"npc-livia",lines:["Eu vi esta água em três futuros diferentes.","Qual deles você quer alimentar?"],quest:"ending"},
+    {x:820,y:300,name:"Homem Sem Rosto",portrait:"npc-orus",lines:["A última memória não está na água.","Está nas escolhas que você fez."],quest:"faceless"}
   ],props:"forest"}
 };
 
@@ -140,12 +158,15 @@ const encounters = {
   sentinel:{name:"Vigia Prismático",portrait:"enemy-burst",maxHp:40,atk:5,xp:24,gold:12,color:"#69d8ff",intro:"O Vigia Prismático reflete seu movimento.",actions:["OBSERVAR","REPARAR"],mercyNeed:2,pattern:"walls"},
   duelist:{name:"Duelista do Eclipse",portrait:"enemy-heroine",maxHp:44,atk:6,xp:32,gold:18,color:"#ff5a9d",intro:"Uma duelista surge entre brilhos violeta.",actions:["ELOGIAR","DESAFIAR"],mercyNeed:3,pattern:"slash"},
   wisp:{name:"Orbe da Memória",portrait:"enemy-burst",maxHp:34,atk:5,xp:27,gold:15,color:"#9d8aff",intro:"O Orbe abre uma fenda de lembranças.",actions:["OUVIR","ACALMAR"],mercyNeed:2,pattern:"rings"},
-  boss:{name:"Guardião do Eclipse",portrait:"enemy-guardian",maxHp:120,atk:8,xp:100,gold:80,color:"#ff5ad7",intro:"O Guardião do Eclipse desperta no santuário.",actions:["ENCARAR","LEMBRAR"],mercyNeed:5,pattern:"boss"}
+  boss:{name:"Guardião do Eclipse",portrait:"enemy-guardian",maxHp:160,atk:8,xp:140,gold:100,color:"#ff5ad7",intro:"O Guardião do Eclipse desperta no santuário.",actions:["ENCARAR","LEMBRAR"],mercyNeed:5,pattern:"boss"},
+  mirror:{name:"Guardião Espelhado",portrait:"enemy-heroine",maxHp:58,atk:7,xp:42,gold:24,color:"#70e6ff",intro:"Seu reflexo saiu do cristal.",actions:["IMPROVISAR","ELOGIAR"],mercyNeed:3,pattern:"mirror"},
+  thief:{name:"Ladrão de Memórias",portrait:"enemy-keeper",maxHp:52,atk:6,xp:38,gold:30,color:"#ffd45e",intro:"Algo puxou uma lembrança da sua alma.",actions:["NEGOCIAR","LEMBRAR"],mercyNeed:3,pattern:"steal"},
+  eye:{name:"Olho do Eclipse",portrait:"enemy-burst",maxHp:64,atk:7,xp:48,gold:28,color:"#e36cff",intro:"Um olho se abre no céu da ruína.",actions:["ENCARAR","DESVIAR"],mercyNeed:3,pattern:"eye"}
 };
 
 function saveGame(){
   const data = {map:S.map, player:S.player, inventory:S.inventory, mercy:S.mercy, storyStep:S.storyStep,
-    defeated:S.defeated, reduceMotion:S.reduceMotion, muted:S.muted};
+    defeated:S.defeated, reduceMotion:S.reduceMotion, muted:S.muted, flags:S.flags,stats:S.stats,memoryIndex:S.memoryIndex,memories:S.memories,achievements:S.achievements,quests:S.quests,inspected:S.inspected,secretSeen:S.secretSeen,discovered:S.discovered};
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
 }
 function loadGame(){
@@ -155,7 +176,7 @@ function loadGame(){
     Object.assign(S.player,d.player||{});
     S.map=d.map||"vale"; S.inventory=d.inventory||S.inventory; S.mercy=d.mercy||0;
     S.storyStep=d.storyStep||0; S.defeated=Object.assign(S.defeated,d.defeated||{});
-    S.reduceMotion=!!d.reduceMotion; S.muted=!!d.muted;
+    S.reduceMotion=!!d.reduceMotion; S.muted=!!d.muted; S.flags=Object.assign(S.flags,d.flags||{}); S.stats=Object.assign(S.stats,d.stats||{}); S.memories=d.memories||[]; S.achievements=d.achievements||[]; S.quests=Object.assign(S.quests,d.quests||{}); S.inspected=Object.assign({},d.inspected||{}); S.secretSeen=Object.assign({},d.secretSeen||{}); S.discovered=d.discovered||[];
     S.mode="world"; S.pause=false; S.player.inv=0; S.transition=0;
     toast("Jogo carregado");
     return true;
@@ -165,7 +186,8 @@ function resetGame(){
   localStorage.removeItem(SAVE_KEY);
   S.mode="world"; S.map="vale"; S.player={x:480,y:420,r:12,hp:28,maxHp:28,lv:1,exp:0,next:30,inv:0,dir:1,walk:0};
   S.inventory=[{id:"potion",name:"Poção de Alma",heal:10,qty:3}];
-  S.mercy=0; S.storyStep=0; S.defeated={bat:false,sentinel:false,duelist:false,wisp:false,boss:false};
+  S.mercy=0; S.storyStep=0; S.defeated={bat:false,sentinel:false,duelist:false,wisp:false,boss:false,mirror:false,thief:false,eye:false};
+  S.flags={route:"balanced",lanterns:0,fragments:0,secretRooms:0,quizzes:0,inspected:0,helped:false}; S.stats={battles:0,kills:0,spares:0,perfectFights:0,acts:0}; S.memories=[]; S.achievements=[]; S.quests={cartographer:false,lanterns:false,quiz:false,memory:false,blacksmith:false}; S.inspected={}; S.secretSeen={}; S.discovered=[];
   S.particles=[]; S.floaters=[]; S.flashes=[]; S.transition=0;
   saveGame(); toast("Uma nova jornada começou");
 }
@@ -282,17 +304,56 @@ function transitionTo(target,from){
 
 function interact(){
   if(S.mode!=="world") return;
-  if(pressed.x||pressed.escape){S.pause=true;return;}
   const p=S.player;
-  let nearest=null,nd=70;
+  // Journal / memory shortcuts work anywhere in the world.
+  if(pressed.j){S.mode="journal";S.journalTab=0;return}
+  if(pressed.m){S.mode="memory";return}
+  if(pressed.k){S.mode="achievements";return}
+  let nearest=null,nd=75;
   for(const n of getNPCs()){const d=Math.hypot(p.x-n.x,p.y-n.y);if(d<nd){nearest=n;nd=d}}
-  if(nearest){
-    say(nearest.lines,nearest.name); sound("confirm"); return;
-  }
-  if(S.map==="vale" && Math.hypot(p.x-520,p.y-390)<50 && S.storyStep===0){
-    S.storyStep=1; say(["Você encontrou um pequeno fragmento de alma.","Ele pulsa no mesmo ritmo que o seu coração.","Talvez seja o começo de algo maior."],"Fragmento"); saveGame(); return;
-  }
+  if(nearest){ interactNPC(nearest); return; }
+  const hit = findHotspot(p.x,p.y);
+  if(hit){ triggerHotspot(hit); return; }
+  if(pressed.x||pressed.escape){S.pause=true;return;}
 }
+
+const hotspots={
+  vale:[{id:"ashstone",x:520,y:390,r:58,label:"Fragmento de alma",action:"fragment"},{id:"grave",x:120,y:240,r:48,label:"Lápide antiga",action:"inspect"}],
+  forest:[{id:"lantern1",x:170,y:230,r:46,label:"Lanterna apagada",action:"lantern"},{id:"lantern2",x:840,y:200,r:46,label:"Lanterna apagada",action:"lantern"},{id:"roots",x:500,y:300,r:55,label:"Raízes sussurrantes",action:"quiz"}],
+  cave:[{id:"mirror",x:600,y:260,r:60,label:"Cristal espelhado",action:"battle:mirror"},{id:"echo",x:160,y:390,r:50,label:"Parede do eco",action:"memory"}],
+  ruins:[{id:"eye",x:780,y:130,r:60,label:"Olho do Eclipse",action:"battle:eye"},{id:"runes",x:300,y:390,r:58,label:"Runas quebradas",action:"inspect"}],
+  lake:[{id:"lakefragment",x:500,y:260,r:70,label:"Reflexo na água",action:"memory"},{id:"chest",x:820,y:440,r:48,label:"Baú antigo",action:"inspect"}],
+  twilight:[{id:"lantern3",x:360,y:200,r:46,label:"Lanterna apagada",action:"lantern"},{id:"lantern4",x:690,y:210,r:46,label:"Lanterna apagada",action:"lantern"},{id:"thief",x:500,y:150,r:55,label:"Sussurro dourado",action:"battle:thief"}],
+  prism:[{id:"lantern5",x:220,y:220,r:46,label:"Lanterna prismática",action:"lantern"},{id:"crystal",x:700,y:220,r:55,label:"Cristal de decisão",action:"choice"}],
+  sanctuary:[{id:"secret",x:480,y:260,r:68,label:"Estátua do Eclipse",action:"secret"},{id:"bossgate",x:480,y:120,r:65,label:"Portão do Guardião",action:"boss"}],
+  source:[{id:"finalmemory",x:480,y:240,r:80,label:"Nascente das Memórias",action:"ending"}]
+};
+function findHotspot(x,y){return (hotspots[S.map]||[]).find(h=>Math.hypot(x-h.x,y-h.y)<h.r && !S.inspected[h.id])||null}
+function interactNPC(n){
+  if(n.quest==="quiz"){startQuiz();return}
+  if(n.quest==="memory"){startMemory();return}
+  if(n.quest==="lanterns"){say(S.flags.lanterns>=5?["Todas as lanternas voltaram a brilhar.","A vila do crepúsculo está protegida.","Você ganhou uma memória rara."]:["Encontre e acenda as cinco lanternas apagadas.","Elas estão espalhadas entre a floresta e o crepúsculo.","Volte quando todas brilharem."],n.name); if(S.flags.lanterns>=5){rewardMemory("A luz que escolhi");S.quests.lanterns=true;saveGame();}return}
+  if(n.quest==="blacksmith"||n.quest==="forge"){ if(S.flags.fragments>=2){say(["O material é suficiente.","Téo reforça sua alma e aumenta o máximo de HP em 4."],n.name);S.player.maxHp+=4;S.player.hp=S.player.maxHp;S.flags.helped=true;S.quests.blacksmith=true;saveGame();}else say(["Ainda preciso de dois fragmentos de memória.","Procure pelas áreas e examine o que parece fora do lugar."],n.name); return; }
+  if(n.quest==="cartographer"){ if(S.flags.inspected>=3){S.quests.cartographer=true;rewardMemory("Mapa de um caminho impossível");say(["Você encontrou os pontos secretos.","Agora o mapa mostra um caminho que não existia.","Guarde-o. Ele será importante depois."],n.name);saveGame();} else say(["Explore e investigue pelo menos três lugares estranhos.","Eu marco cada segredo que você descobrir."],n.name);return; }
+  if(n.quest==="collector"){if(S.flags.fragments>=3){S.flags.fragments-=3;S.inventory.push({id:"ancient",name:"Chave Antiga",heal:0,qty:1});say(["Três fragmentos... perfeito.","Use esta chave quando encontrar uma porta sem maçaneta."],n.name);saveGame();}else say(["Traga três fragmentos de memória.","Eu tenho algo que vale a troca."],n.name);return;}
+  if(n.quest==="secret"){ const lines=S.flags.inspected>=5?["O símbolo respondeu a você.","Há uma sala secreta atrás da estátua.","Uma memória foi gravada no seu coração."]:["A estátua não reage.","Talvez você precise explorar mais antes de voltar."]; say(lines,n.name); if(S.flags.inspected>=5){S.flags.secretRooms++;rewardMemory("A sala que não deveria existir");}saveGame();return;}
+  if(n.quest==="ending"){startChoice();return;}
+  if(n.quest==="eris"){startChoice();return}
+  say(n.lines,n.name); sound("confirm");
+}
+function triggerHotspot(h){
+  if(h.action==="fragment"){rewardMemory("Primeiro Fragmento");S.storyStep=1;S.inspected[h.id]=true;S.flags.fragments++;say(["Você encontra um fragmento de alma.","Ele pulsa no mesmo ritmo que o seu coração.","Uma memória acordou.","Pressione M a qualquer momento para rever memórias."],"Fragmento");saveGame();return;}
+  if(h.action==="inspect"){S.inspected[h.id]=true;S.flags.inspected++;S.flags.fragments++;S.flags.helped=false;const texts={ashstone:["A lápide está quente, apesar da noite."],grave:["A lápide diz apenas: ‘Aqui repousa alguém que escolheu lembrar’."],runes:["As runas mostram quatro símbolos: coragem, medo, memória e esperança."],chest:["O baú estava vazio... até você tocá-lo.","Dentro havia um fragmento de memória."]}; const t=texts[h.id]||["Você encontra marcas antigas."];say(t,"Investigação");checkAchievements();saveGame();return;}
+  if(h.action==="lantern"){S.flags.lanterns=Math.min(5,S.flags.lanterns+1);S.inspected[h.id]=true;S.flags.inspected++;rewardMemory("Lanterna acesa #"+S.flags.lanterns);say(["A lanterna volta a brilhar.","Uma pequena parte da escuridão recua.","Lanternas acesas: "+S.flags.lanterns+"/5"],"Lanterna");checkAchievements();saveGame();return;}
+  if(h.action==="quiz"){startQuiz();return}
+  if(h.action==="memory"){startMemory();return}
+  if(h.action==="choice"){startChoice();return}
+  if(h.action==="secret"){if(S.flags.inspected>=5){S.flags.secretRooms++;rewardMemory("Câmara do Eclipse");S.secretSeen[h.id]=true;S.inspected[h.id]=true;S.mode="memory";}else say(["A estátua permanece imóvel.","Você sente que ainda faltam respostas."],"Estátua");return;}
+  if(h.action==="boss"){if(S.defeated.boss){say(["O portão está silencioso.","O que restou do eclipse não quer lutar novamente."],"Portão");}else startBattle("boss");return;}
+  if(h.action.startsWith("battle:")){startBattle(h.action.split(":")[1]);return;}
+  if(h.action==="ending"){startChoice();return;}
+}
+function rewardMemory(name){if(!S.memories.includes(name)){S.memories.push(name);S.flags.fragments++;toast("Memória encontrada: "+name);}}
 
 function encounterCheck(){
   if(S.mode!=="world"||S.transition>0||S.pause) return;
@@ -314,8 +375,9 @@ function startBattle(type){
     phase:"menu", menu:0, sub:0, timer:0, message:[e.intro], msgIndex:0,
     heart:{x:480,y:430,r:8,vx:0,vy:0,inv:0}, bullets:[], particles:[],
     patternTime:0, actionCooldown:0, hitFlash:0, fightScore:0, defeatT:0,
-    mercy:0, itemIndex:0, turn:0, guard:0, bossPhase:1
+    mercy:0, itemIndex:0, turn:0, guard:0, bossPhase:1, phaseAnnounced:0, copied:false
   };
+  S.stats.battles++;
   burst(480,430,"#ff4059",14,1.3); flash("#fff",.13); sound("confirm");
 }
 
@@ -410,7 +472,7 @@ function resolveFight(){
 
 function doAct(){
   const b=S.battle, a=b.enemy.actions[b.sub];
-  let text="";
+  let text=""; S.stats.acts++;
   if(a==="ELOGIAR"){b.enemy.mood+=1;text="Você elogia as asas. O morcego parece menos nervoso."}
   else if(a==="ASSUSTAR"){b.enemy.mood+=2;text="Você faz uma pose assustadora. Estranhamente, funcionou."}
   else if(a==="OBSERVAR"){b.guard=.35;b.enemy.mood+=1;text="Você observa os movimentos. Agora os ataques parecem previsíveis."}
@@ -418,7 +480,10 @@ function doAct(){
   else if(a==="DESAFIAR"){b.enemy.mood+=1;text="Você aceita o duelo sem recuar. O respeito aumenta."}
   else if(a==="OUVIR"){b.enemy.mood+=1;text="Você escuta o sussurro até ele ficar calmo."}
   else if(a==="ACALMAR"){b.enemy.mood+=2;text="Você estende a mão. O orbe diminui a intensidade."}
-  else if(a==="ENCARAR"){b.enemy.mood+=1;text="Você encara o Guardião. O eclipse vacila por um instante."}
+  else if(a==="ENCARAR"){b.enemy.mood+=1;text="Você encara o inimigo. O eclipse vacila por um instante."}
+  else if(a==="IMPROVISAR"){b.enemy.mood+=1;b.guard=.25;text="Você faz algo inesperado. Seu reflexo perdeu a vantagem."}
+  else if(a==="NEGOCIAR"){b.enemy.mood+=1;S.flags.route="pacifist";text="Você oferece uma memória em vez de um golpe."}
+  else if(a==="DESVIAR"){b.enemy.mood+=1;b.guard=.4;text="Você baixa a guarda e mostra que não quer lutar."}
   else {b.enemy.mood+=2;text="Você se lembra de quem era antes de chegar aqui. O Guardião hesita."}
   if(b.enemy.mood>=encounters[b.type].mercyNeed){b.mercy=100}
   b.phase="message"; b.message=[text]; b.msgIndex=0; b.afterMessage="enemy"; sound("confirm");
@@ -448,7 +513,7 @@ function startEnemyTurn(){
   const b=S.battle;
   b.phase="enemy"; b.patternTime=0;b.bullets=[];b.heart.x=480;b.heart.y=430;b.heart.inv=0;
   b.turn++; b.guard=Math.max(0,b.guard-.2);
-  if(b.type==="boss" && b.enemy.hp<60) b.bossPhase=2;
+  if(b.type==="boss"){ const old=b.bossPhase; b.bossPhase=b.enemy.hp<55?3:(b.enemy.hp<105?2:1); if(b.bossPhase!==old){ b.phaseAnnounced=b.bossPhase; b.phase="message"; b.message=[b.bossPhase===2?"O Guardião rompe sua primeira armadura.":"A última fase desperta. O cenário inteiro parece respirar."]; b.msgIndex=0; b.afterMessage="enemy"; return; }}
 }
 
 function spawnBullet(x,y,vx,vy,kind="orb",r=7,color="#d86cff",life=5,extra={}){
@@ -491,8 +556,14 @@ function enemyPattern(dt){
     if(Math.floor(t*2)!==Math.floor((t-dt)*2)){
       for(let i=0;i<8;i++){const a=i*TAU/8+t*.4;spawnBullet(cx+Math.cos(a)*120,cy+Math.sin(a)*55,Math.cos(a)*65,Math.sin(a)*30,"orb",5,"#d4c9ff",3)}
     }
+  }else if(b.type==="mirror"){
+    if(Math.floor(t*4)!==Math.floor((t-dt)*4)){ const a=t*1.7; spawnBullet(cx+Math.cos(a)*145,cy+Math.sin(a)*70,-Math.cos(a)*80,-Math.sin(a)*45,"orb",7,"#70e6ff",4); spawnSlash(cx,cy,a,230);}
+  }else if(b.type==="thief"){
+    if(Math.floor(t*3)!==Math.floor((t-dt)*3)){ for(let i=0;i<3;i++){ const a=t+i*2.1; spawnBullet(cx+Math.cos(a)*160,cy+Math.sin(a)*70,-Math.cos(a)*95,-Math.sin(a)*35,"eye",7,"#ffd45e",4); } }
+  }else if(b.type==="eye"){
+    if(Math.floor(t*5)!==Math.floor((t-dt)*5)){ const a=t*2; spawnBullet(cx,cy,Math.cos(a)*130,Math.sin(a)*90,"eye",8,"#e36cff",4); spawnBullet(cx,cy,Math.cos(a+Math.PI)*130,Math.sin(a+Math.PI)*90,"eye",8,"#e36cff",4); }
   }else if(b.type==="boss"){
-    const rate=b.bossPhase===2?5:3;
+    const rate=b.bossPhase===3?7:(b.bossPhase===2?5:3);
     if(Math.floor(t*rate)!==Math.floor((t-dt)*rate)){
       const a=Math.atan2(p.y-cy,p.x-cx);
       for(let k=-2;k<=2;k++)spawnBullet(cx,cy,Math.cos(a+k*.22)*120,Math.sin(a+k*.22)*80,"orb",6,"#ff54d8",4);
@@ -530,9 +601,10 @@ function finishBattle(win){
   const b=S.battle, type=b.type;
   if(!win && b.enemy.mood<encounters[type].mercyNeed){win=false}
   S.defeated[type]=true;
-  if(win){gainXP(encounters[type].xp); S.player.gold=(S.player.gold||0)+encounters[type].gold; toast("+"+encounters[type].xp+" EXP");}
-  else {toast("Você poupou "+encounters[type].name+".");}
-  b.phase=win?"victory":"defeat"; b.defeatT=0; b.enemy.alpha=1; b.bullets=[]; saveGame(); sound(win?"win":"spare");
+  if(win){gainXP(encounters[type].xp); S.player.gold=(S.player.gold||0)+encounters[type].gold; S.stats.kills++; S.flags.route=S.stats.spares>S.stats.kills?"pacifist":"aggressive"; toast("+"+encounters[type].xp+" EXP");}
+  else {S.stats.spares++; S.flags.route=S.stats.spares>=S.stats.kills?"pacifist":"balanced"; toast("Você poupou "+encounters[type].name+"."); rewardMemory("Uma escolha poupada");}
+  if(type==="boss"){S.storyStep=9; if(S.stats.spares>=S.stats.kills){S.flags.route="pacifist";} else if(S.stats.kills>=3){S.flags.route="aggressive";} else S.flags.route="balanced";}
+  b.phase=win?"victory":"defeat"; b.defeatT=0; b.enemy.alpha=1; b.bullets=[]; checkAchievements(); saveGame(); sound(win?"win":"spare");
 }
 function drawBattleEnemy(b){
   const e=b.enemy, im=img[e.portrait];
@@ -623,6 +695,7 @@ function drawWorld(){
   if(S.map==="vale"&&S.storyStep===0) drawHeart(520,390,1+Math.sin(S.t*4)*.08,true);
   drawPlayer();
   drawInteractionPrompt();
+  drawHotspotMarkers();
   // subtle animated vignette / scanlines for the reference-like presentation
   ctx.save();ctx.globalAlpha=.055;ctx.fillStyle="#000";
   for(let y=0;y<H;y+=4)ctx.fillRect(0,y,W,1);
@@ -680,6 +753,11 @@ function drawPlayer(){
   if(!S.reduceMotion && Math.floor(S.t*14)%3===0) sparkle(p.x+(Math.random()-.5)*10,p.y+(Math.random()-.5)*12,"#e9c7ff");
   drawHeart(p.x,p.y+bob,1.05,true);
 }
+function drawHotspotMarkers(){
+  const hs=hotspots[S.map]||[]; if(!hs.length)return; ctx.save();
+  for(const h of hs){ if(S.inspected[h.id])continue; const pulse=5+Math.sin(S.t*3+h.x)*2;ctx.globalAlpha=.22+.10*Math.sin(S.t*4+h.x);ctx.strokeStyle="#c978ff";ctx.lineWidth=2;ctx.beginPath();ctx.arc(h.x,h.y-16,12+pulse,0,TAU);ctx.stroke();ctx.globalAlpha=.9;txt("✦",h.x,h.y-34,12,"#efe0ff","center","bold"); }
+  ctx.restore();
+}
 function drawHUD(){
   ctx.save();
   ctx.fillStyle="#05040bdd";roundRect(18,16,330,70,9,true);strokeRect(18,16,330,70,"#7f6b9f");
@@ -691,7 +769,7 @@ function drawHUD(){
   txt(`EXP ${S.player.exp}/${S.player.next}`,255,79,10,"#cdbce6","left");
   const gold=S.player.gold||0;txt("◆ "+gold,332,37,13,"#ffd76b","right","bold");
   txt(maps[S.map].name.toUpperCase(),W-25,32,15,"#fff","right","bold");
-  txt("E: falar/interagir   X: pausa",W-25,55,11,"#bcb3c9","right");
+  txt("E: interagir   J: diário   M: memórias   K: conquistas",W-25,55,10,"#bcb3c9","right");
   ctx.restore();
 }
 function drawDialogue(){
@@ -716,6 +794,7 @@ function drawTitle(){
   const im=img["scene01-title"];
   if(im && im.complete && im.naturalWidth>0 && !im.__failed){ctx.drawImage(im,0,0,W,H);}
   else {ctx.fillStyle="#03020a";ctx.fillRect(0,0,W,H);}
+  txt("V9 • MUNDO VIVO",W-28,H-22,12,"#d7a6ff","right","bold");
   // A camada animada mantém a ilustração fornecida intacta, só adicionando vida à cena.
   if(!S.reduceMotion){
     for(let i=0;i<32;i++){
@@ -806,6 +885,30 @@ function overlayBox(title,lines,color){
   txt("E / Enter para continuar",480,365,13,"#aaa","center");
 }
 
+
+const QUIZZES=[
+  {title:"QUIZ DOS ECOS",questions:[
+    {q:"Qual área guarda memórias que não são suas?",o:["Vale das Cinzas","Lago das Memórias","Caverna do Eco"],a:1},
+    {q:"Quem entrega mapas secretos?",o:["Milo","Kafro","Zyra"],a:0},
+    {q:"Quantas lanternas podem ser acesas?",o:["3","4","5"],a:2},
+    {q:"O que o Bosque Prismático guarda?",o:["Escolhas","Ouro","Portais"],a:0},
+    {q:"O que alimenta o eclipse?",o:["Memórias esquecidas","Água","Cristais azuis"],a:0}
+  ]}
+];
+function startQuiz(){S.mode="quiz";S.quiz={index:0,score:0,choice:0};sound("confirm")}
+function quizInput(){const q=QUIZZES[0].questions[S.quiz.index]; if((pressed.arrowleft||pressed.a||pressed.arrowup||pressed.w)&&!S.cool){S.quiz.choice=(S.quiz.choice+q.o.length-1)%q.o.length;S.cool=.13} if((pressed.arrowright||pressed.d||pressed.arrowdown||pressed.s)&&!S.cool){S.quiz.choice=(S.quiz.choice+1)%q.o.length;S.cool=.13} if(pressed.x||pressed.escape){S.mode="world";return} if(pressed.e||pressed.enter||pressed[" "]){if(S.quiz.choice===q.a)S.quiz.score++;S.quiz.index++;S.quiz.choice=0;if(S.quiz.index>=QUIZZES[0].questions.length){const score=S.quiz.score;S.flags.quizzes++;S.quests.quiz=true;if(score===5){rewardMemory("Mestre dos Ecos");S.stats.perfectFights++;}say(["Quiz concluído: "+score+"/5.",score>=4?"Os ecos reconheceram suas escolhas.":"Os ecos querem que você explore mais.","Memórias conquistadas: "+S.memories.length],"Ari");S.mode="dialogue";checkAchievements();saveGame();}}}
+function startMemory(){if(!S.memories.length){say(["Sua alma ainda não guarda memórias suficientes.","Explore, investigue e converse para encontrar fragmentos."],"Memórias");return}S.mode="memory";S.memoryIndex=Math.min(S.memoryIndex,S.memories.length-1)}
+function memoryInput(){if(pressed.x||pressed.escape||pressed.m||pressed.enter||pressed.e||pressed[" "]){if(pressed.x||pressed.escape||pressed.m||pressed.enter||pressed.e||pressed[" "]){S.mode="world";return}} const len=S.memories.length;if(!len)return; if((pressed.arrowleft||pressed.a||pressed.arrowup||pressed.w)&&!S.cool){S.memoryIndex=(S.memoryIndex+len-1)%len;S.cool=.13} if((pressed.arrowright||pressed.d||pressed.arrowdown||pressed.s)&&!S.cool){S.memoryIndex=(S.memoryIndex+1)%len;S.cool=.13}}
+function startChoice(){S.mode="choice";S.choices=0}
+function choiceInput(){if((pressed.arrowup||pressed.w)&&!S.cool){S.choices=(S.choices+2)%3;S.cool=.14}if((pressed.arrowdown||pressed.s)&&!S.cool){S.choices=(S.choices+1)%3;S.cool=.14}if(pressed.x||pressed.escape){S.mode="world";return}if(pressed.e||pressed.enter||pressed[" "]){const c=["Perdo a sombra.","Guardo a memória.","Desafio o eclipse."][S.choices];S.flags.route=S.choices===0?"pacifist":S.choices===2?"aggressive":"balanced";S.storyStep=Math.max(S.storyStep,8);rewardMemory(c);say(["Sua escolha foi registrada.","Rota atual: "+S.flags.route.toUpperCase(),S.choices===0?"Algumas almas poderão voltar.":S.choices===1?"A memória permanecerá com você.":"O eclipse sentiu seu desafio."],"A Alma");saveGame();}}
+function journalInput(){if(pressed.x||pressed.escape||pressed.j||pressed.enter||pressed.e||pressed[" "]){S.mode="world";return}}
+function checkAchievements(){const a=[]; const add=(id,name,desc)=>{if(!S.achievements.includes(id)){S.achievements.push(id);toast("Conquista: "+name)}}; if(S.flags.inspected>=5)add("curious","Curioso Demais","Investigou 5 lugares."); if(S.flags.lanterns>=5)add("lanterns","Luz de Volta","Acendeu as 5 lanternas."); if(S.stats.kills===0&&S.stats.spares>=1)add("mercy","Primeira Piedade","Poupe um inimigo."); if(S.stats.spares>=4)add("pacifist","Coração Gentil","Poupe 4 inimigos."); if(S.stats.kills>=3)add("hunter","Sem Medo","Derrote 3 inimigos."); if(S.flags.secretRooms>=1)add("secret","O Que Você Viu?","Encontrou uma sala secreta."); if(S.memories.length>=5)add("memory","Memória Viva","Encontre 5 memórias."); if(S.flags.quizzes>=1)add("quiz","Ouvinte dos Ecos","Complete um quiz."); saveGame();}
+function drawQuiz(){drawWorld();ctx.fillStyle="#02020bf0";ctx.fillRect(0,0,W,H);roundRect(120,75,720,405,12,true);strokeRect(120,75,720,405,"#8de7ff");const q=QUIZZES[0].questions[S.quiz.index];txt("QUIZ DOS ECOS",480,115,26,"#fff","center","bold");txt(`Pergunta ${S.quiz.index+1}/5  •  Pontos ${S.quiz.score}`,480,145,13,"#9fdfff","center");wrapText(q.q,160,200,640,28,"#fff");q.o.forEach((o,i)=>{const y=285+i*55;ctx.fillStyle=i===S.quiz.choice?"#7b39d8":"#0c0b15";roundRect(185,y,590,42,7,true);strokeRect(185,y,590,42,i===S.quiz.choice?"#fff":"#6b5f7d");txt((i===S.quiz.choice?"◆ ":"  ")+o,210,y+27,16,i===S.quiz.choice?"#fff":"#bbb","left",i===S.quiz.choice?"bold":"normal")});txt("← → escolher   E confirmar   X sair",480,455,12,"#aaa","center")}
+function drawMemory(){ctx.fillStyle="#04030b";ctx.fillRect(0,0,W,H);const bg=img[ S.map==="lake"?"scene14-lake-dialogue":"scene15-ending"];if(bg&&bg.complete&&bg.naturalWidth>0&&!bg.__failed){ctx.globalAlpha=.35;ctx.drawImage(bg,0,0,W,H);ctx.globalAlpha=1;}roundRect(145,80,670,380,12,true);strokeRect(145,80,670,380,"#c47cff");txt("ARQUIVO DE MEMÓRIAS",480,125,25,"#fff","center","bold");if(!S.memories.length){txt("Nenhuma memória encontrada.",480,240,18,"#aaa","center");}else{const m=S.memories[S.memoryIndex]||S.memories[0];txt("✦ "+m,480,225,21,"#dba6ff","center","bold");wrapText("Fragmentos do passado se reorganizam dentro de você. Algumas memórias mudam de significado quando suas escolhas mudam.",220,285,520,28,"#fff");txt(`${S.memoryIndex+1}/${S.memories.length}`,480,390,13,"#aaa","center");}txt("← → trocar   X / Esc voltar",480,430,13,"#bbb","center")}
+function drawChoice(){drawWorld();ctx.fillStyle="#000c";ctx.fillRect(0,0,W,H);roundRect(180,105,600,330,12,true);strokeRect(180,105,600,330,"#d47cff");txt("O QUE SUA ALMA ESCOLHE?",480,150,22,"#fff","center","bold");["Perdoar a sombra","Guardar a memória","Desafiar o eclipse"].forEach((x,i)=>{const y=205+i*62;ctx.fillStyle=i===S.choices?"#a83cff":"#0b0a12";roundRect(240,y,480,44,7,true);strokeRect(240,y,480,44,i===S.choices?"#fff":"#6a5c77");txt((i===S.choices?"◆ ":"  ")+x,480,y+28,16,"#fff","center",i===S.choices?"bold":"normal")});txt("↑ ↓ escolher   E confirmar",480,405,13,"#bbb","center")}
+function drawJournal(){ctx.fillStyle="#05040b";ctx.fillRect(0,0,W,H);roundRect(105,55,750,430,12,true);strokeRect(105,55,750,430,"#65dfff");txt("DIÁRIO DE SOULBOUND",480,95,26,"#fff","center","bold");const route=S.flags.route.toUpperCase();txt("Rota: "+route,135,135,14,"#ffcb71");txt("Capítulo 1 • "+maps[S.map].name,135,160,14,"#9ee7ff");txt("Memórias: "+S.memories.length+"   Investigações: "+S.flags.inspected+"   Lanternas: "+S.flags.lanterns+"/5",135,190,14,"#d9c9e6");txt("BATALHAS",135,235,13,"#a77aff","left","bold");txt("Lutas: "+S.stats.battles,135,258,14,"#fff");txt("Derrotas: "+S.stats.kills,280,258,14,"#fff");txt("Poupados: "+S.stats.spares,450,258,14,"#fff");txt("CONQUISTAS",135,300,13,"#a77aff","left","bold");txt(S.achievements.length+" desbloqueadas",135,325,15,"#fff");txt("Missões",135,365,13,"#a77aff","left","bold");txt("Milo "+(S.quests.cartographer?"✓":"○")+"  Lanternas "+(S.quests.lanterns?"✓":"○")+"  Quiz "+(S.quests.quiz?"✓":"○")+"  Forja "+(S.quests.blacksmith?"✓":"○"),135,390,14,"#fff");txt("J / Enter / X — voltar",480,450,13,"#aaa","center")}
+function drawAchievements(){ctx.fillStyle="#04030a";ctx.fillRect(0,0,W,H);roundRect(145,60,670,430,12,true);strokeRect(145,60,670,430,"#ffd45e");txt("CONQUISTAS",480,100,28,"#fff","center","bold");const list=[ ["curious","Curioso Demais"],["lanterns","Luz de Volta"],["mercy","Primeira Piedade"],["pacifist","Coração Gentil"],["hunter","Sem Medo"],["secret","O Que Você Viu?"],["memory","Memória Viva"],["quiz","Ouvinte dos Ecos"] ]; list.forEach((a,i)=>{const y=150+i*38; const ok=S.achievements.includes(a[0]);txt((ok?"◆":"◇")+" "+a[1],185,y,15,ok?"#ffd45e":"#6e6578","left",ok?"bold":"normal")});txt("K / X / Esc — voltar",480,455,13,"#aaa","center")}
+
 function drawSettings(){
   ctx.fillStyle="#06060c";ctx.fillRect(0,0,W,H);
   txt("CONFIGURAÇÕES",480,105,30,"#fff","center","bold");
@@ -850,11 +953,16 @@ function update(dt){
   if(S.shake>0)S.shake=Math.max(0,S.shake-dt*25);
   if(S.mode==="title")titleInput();
   else if(S.mode==="world"){
-    if(!S.pause){moveWorld(dt);encounterCheck();if(pressed.e||pressed[" "]||pressed.enter)interact();if(pressed.s)saveGame();if(pressed.x||pressed.escape)S.pause=true;}
+    if(!S.pause){moveWorld(dt);encounterCheck();if(pressed.j){S.mode="journal";return}if(pressed.m){S.mode="memory";return}if(pressed.k){S.mode="achievements";return}if(pressed.e||pressed[" "]||pressed.enter)interact();if(pressed.s)saveGame();if(pressed.x||pressed.escape)S.pause=true;}
     else pauseInput();
   }else if(S.mode==="dialogue"){dialogueInput();S.dialogueChars+=dt*42;if(S.dialogueChars>=(S.dialogues[S.dialogueIndex]||"").length)S.dialogueDone=true;}
   else if(S.mode==="battle"){battleInput();updateBattle(dt);}
   else if(S.mode==="settings")settingsInput();
+  else if(S.mode==="quiz")quizInput();
+  else if(S.mode==="memory")memoryInput();
+  else if(S.mode==="choice")choiceInput();
+  else if(S.mode==="journal")journalInput();
+  else if(S.mode==="achievements")journalInput();
   else if(S.mode==="dead" && (pressed.enter||pressed.e||pressed[" "]))S.mode="title";
 }
 
@@ -866,6 +974,11 @@ function render(){
   else if(S.mode==="dialogue")drawDialogue();
   else if(S.mode==="battle")drawBattle();
   else if(S.mode==="settings")drawSettings();
+  else if(S.mode==="quiz")drawQuiz();
+  else if(S.mode==="memory")drawMemory();
+  else if(S.mode==="choice")drawChoice();
+  else if(S.mode==="journal")drawJournal();
+  else if(S.mode==="achievements")drawAchievements();
   else if(S.mode==="dead")drawDead();
   if(S.pause&&S.mode==="world")drawPause();
   // world particles

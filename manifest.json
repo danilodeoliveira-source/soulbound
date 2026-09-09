@@ -1,8 +1,9 @@
 {
-  "name": "Soulbound V8 — Cenas da Referência",
-  "short_name": "Soulbound V8",
-  "start_url": "./",
-  "display": "fullscreen",
-  "background_color": "#05020d",
-  "theme_color": "#6a21ff"
+  "name":"Soulbound V9 — Eclipse Eterno: Mundo Vivo",
+  "short_name":"Soulbound V9",
+  "start_url":"./index.html",
+  "display":"fullscreen",
+  "background_color":"#05030a",
+  "theme_color":"#7f3cff",
+  "lang":"pt-BR"
 }
