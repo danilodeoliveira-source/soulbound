@@ -30,7 +30,21 @@ canvas.addEventListener("pointerdown", ev=>{
   if(S.mode==="title") {
     const idx=Math.floor((pointer.y-265)/45);
     if(pointer.x>=340&&pointer.x<=620&&idx>=0&&idx<4){ S.option=idx; pressed.enter=true; }
-  } else if(S.mode==="dialogue"||S.mode==="battle") { pressed.e=true; }
+  } else if(S.mode==="battle") {
+    const b=S.battle;
+    // Toque direto nas quatro opções de combate — além do D-pad.
+    if(b && b.phase==="menu" && pointer.y>=445 && pointer.y<=510){
+      const slot=Math.floor((pointer.x-205)/185);
+      if(slot>=0 && slot<4){
+        b.menu=slot; pressed.enter=true;
+        return;
+      }
+    }
+    // Toque direto no item selecionado para usar, ou no X para voltar.
+    if(b && b.phase==="item" && pointer.y>=395 && pointer.y<=475){ pressed.enter=true; return; }
+    if(b && (b.phase==="item"||b.phase==="act") && pointer.x<380 && pointer.y>430){ pressed.x=true; return; }
+    pressed.e=true;
+  } else if(S.mode==="dialogue") { pressed.e=true; }
 });
 canvas.addEventListener("pointerup",()=>pointer.down=false);
 
@@ -57,8 +71,16 @@ async function toggleFullscreen(){
 const img = {};
 for (const n of ["vale","forest","cave","ruins","bat","sentinel","duelist","wisp","boss"]) {
   img[n] = new Image();
-  img[n].onerror = () => { img[n].__failed = true; };
-  img[n].src = "assets/"+n+".svg";
+  img[n].__fallback = new Image();
+  img[n].__failed = false;
+  img[n].onerror = () => {
+    if (!img[n].__usingFallback) {
+      img[n].__usingFallback = true;
+      img[n].__fallback.src = "assets/"+n+".svg";
+      img[n].src = img[n].__fallback.src;
+    } else img[n].__failed = true;
+  };
+  img[n].src = "assets/"+n+".png";
 }
 
 const S = {
@@ -293,6 +315,15 @@ function battleInput(){
   const b=S.battle; if(!b)return;
   const confirm=pressed.e||pressed[" "]||pressed.enter;
   const back=pressed.x||pressed.escape;
+
+  // Atalhos rápidos: 1/2/3/4 escolhem LUTAR/AGIR/ITEM/POUPAR.
+  if(b.phase==="menu") {
+    if(pressed["1"]){b.menu=0; b.phase="fight"; b.timer=0; b.fightScore=0; sound("confirm"); return;}
+    if(pressed["2"]){b.menu=1; b.phase="act"; b.sub=0; sound("confirm"); return;}
+    if(pressed["3"]){b.menu=2; b.phase="item"; b.itemIndex=0; sound("confirm"); return;}
+    if(pressed["4"]){attemptSpare(); return;}
+  }
+
   if(b.phase==="message"){
     if(confirm){
       b.msgIndex++;
@@ -327,22 +358,24 @@ function battleInput(){
     return;
   }
   if(b.phase==="fight"){
+    if(back){b.phase="menu"; b.cool=0; sound("confirm"); return;}
     if(confirm){resolveFight();return}
   }
   if(b.phase==="enemy"){return;}
   if(b.phase==="item"){
-    if(back){b.phase="menu";return}
+    if(back){b.phase="menu";b.cool=0;sound("confirm");return;}
     if((keys.arrowup||keys.w)&&!b.cool){b.itemIndex=(b.itemIndex+S.inventory.length-1)%S.inventory.length;b.cool=.16}
     if((keys.arrowdown||keys.s)&&!b.cool){b.itemIndex=(b.itemIndex+1)%S.inventory.length;b.cool=.16}
     if(confirm && !b.cool) useItem(); return;
   }
   if(b.phase==="act"){
-    if(back){b.phase="menu";return}
+    if(back){b.phase="menu";b.cool=0;sound("confirm");return}
     if((keys.arrowup||keys.w)&&!b.cool){b.sub=(b.sub+b.enemy.actions.length-1)%b.enemy.actions.length;b.cool=.16}
     if((keys.arrowdown||keys.s)&&!b.cool){b.sub=(b.sub+1)%b.enemy.actions.length;b.cool=.16}
     if(confirm&&!b.cool) doAct(); return;
   }
   if(b.phase==="menu"){
+    if(back){S.battle=null;S.mode="world";S.player.x=480;S.player.y=360;saveGame();toast("Batalha encerrada");return;}
     if((keys.arrowleft||keys.a)&&!b.cool){b.menu=(b.menu+3)%4;b.cool=.14}
     if((keys.arrowright||keys.d)&&!b.cool){b.menu=(b.menu+1)%4;b.cool=.14}
     if(confirm&&!b.cool){
