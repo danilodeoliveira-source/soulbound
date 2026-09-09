@@ -1,28 +1,19 @@
-# Soulbound V3
+# Soulbound V4
 
-V3 com foco em combate, personagens e exploração.
+Versão expandida do jogo original Soulbound, com estética retrô 8-bit própria.
 
-## Correções
-- Inimigos derrotados ficam derrotados e não reaparecem.
-- Cada encontro da história é único.
-- NPCs agora têm interação mais tolerante (raio maior) e falas reais.
-- Alma do jogador substitui o boneco humano.
-- NPCs ganharam sprites desenhados com mais detalhes.
-- Batalhas têm retrato visual original do inimigo.
-- Três áreas conectadas.
-- Três encontros: Morcego Nebuloso, Sentinela de Pedra e Guardião do Eclipse.
-- Padrões de projéteis diferentes.
-- LUTAR / AGIR / ITEM / POUPAR.
+### Novidades
+- Tela cheia pelo botão ou tecla F.
+- Alma/coração do jogador redesenhada.
+- Árvores, casas e matinho em todos os ambientes.
+- NPCs com sprites 8-bit mais detalhados.
+- Quatro ambientes: Vale, Floresta, Caverna e Ruínas.
+- Quatro inimigos, incluindo dois desafios extras e um chefe final.
+- Ataques visualmente diferentes: projéteis, socos e cortes.
+- Inimigo treme quando recebe um golpe.
+- Animação de derrota antes de sair da batalha.
+- Inimigos importantes não reaparecem após derrota ou poupar.
 - Save automático.
-- Vitória/derrota/POUPADO aceita E, Espaço, Enter e clique.
-- Controles móveis.
+- Controles desktop e mobile.
 
-## Arquivos
-- index.html
-- style.css
-- script.js
-- assets/bat.svg
-- assets/sentinel.svg
-- assets/eclipse.svg
-
-Todos os arquivos são originais e não usam sprites ou personagens de Undertale.
+Não usa personagens, sprites, músicas ou imagens de Undertale. A inspiração é apenas no gênero e na estrutura de RPG retrô.
