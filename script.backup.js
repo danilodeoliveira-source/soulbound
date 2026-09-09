@@ -1,15 +1,15 @@
 (() => {
 "use strict";
 
-/* SOULBOUND V8 — Galeria de Cenas. Direção visual neon pixel-art baseada na referência fornecida, com efeitos cinematográficos e UI aprimorada. */
+/* SOULBOUND V6 — Capítulo 1, visual neon pixel-art inspirado na referência fornecida. */
 
 const canvas = document.getElementById("screen");
 const ctx = canvas.getContext("2d");
 ctx.imageSmoothingEnabled = false;
 const W = canvas.width, H = canvas.height;
 const TAU = Math.PI * 2;
-const SAVE_KEY = "soulbound-v8-save";
-const LEGACY_SAVE_KEYS = ["soulbound-v7-save", "soulbound-v6-save", "soulbound-v5-save", "soulbound-v5-1-save"];
+const SAVE_KEY = "soulbound-v6-save";
+const LEGACY_SAVE_KEYS = ["soulbound-v5-save", "soulbound-v5-1-save"];
 
 const keys = Object.create(null);
 const pressed = Object.create(null);
@@ -28,8 +28,8 @@ canvas.addEventListener("pointerdown", ev=>{
   const r=canvas.getBoundingClientRect();
   pointer.x=(ev.clientX-r.left)*W/r.width; pointer.y=(ev.clientY-r.top)*H/r.height; pointer.down=true;
   if(S.mode==="title") {
-    const idx=Math.floor((pointer.y-330)/42);
-    if(pointer.x>=325&&pointer.x<=760&&idx>=0&&idx<4){ S.option=idx; pressed.enter=true; }
+    const idx=Math.floor((pointer.y-265)/45);
+    if(pointer.x>=340&&pointer.x<=620&&idx>=0&&idx<4){ S.option=idx; pressed.enter=true; }
   } else if(S.mode==="battle") {
     const b=S.battle;
     // Toque direto nas quatro opções de combate — além do D-pad.
@@ -69,19 +69,10 @@ async function toggleFullscreen(){
 }
 
 const img = {};
-const ASSET_NAMES = [
-  "scene01-title","scene02-vale","scene03-forest","scene04-cave","scene05-ruins","scene06-lake",
-  "scene07-battle-shadow","scene08-shadow-burst","scene09-guardian-battle","scene10-victory",
-  "scene11-inventory","scene12-save","scene13-settings","scene14-lake-dialogue","scene15-ending",
-  "area06-lake","area07-twilight","area08-prism","area09-sanctuary","area10-source",
-  "npc-livia","npc-orus","npc-kafro","npc-zyra","npc-seren",
-  "enemy-shadow","enemy-burst","enemy-guardian","enemy-heroine","enemy-keeper"
-];
-for (const n of ASSET_NAMES) {
+for (const n of ["vale","forest","cave","ruins","bat","sentinel","duelist","wisp","boss"]) {
   img[n] = new Image();
-  img[n].__failed = false;
   img[n].onerror = () => { img[n].__failed = true; };
-  img[n].src = "assets/"+n+".png";
+  img[n].src = "assets/"+n+".svg";
 }
 
 const S = {
@@ -94,53 +85,46 @@ const S = {
   particles:[], floaters:[], flashes:[], shake:0, transition:0,
   reduceMotion:false, muted:false,
   battle:null, toast:"", toastT:0,
-  choices:0, option:0, pause:false,
-  bannerT:0, bannerShown:false, lastMap:"vale", ambienceSeed:Math.random()*1000, scenePulse:0
+  choices:0, option:0, pause:false
 };
 
 const maps = {
-  vale:{name:"Vale das Cinzas",bg:"scene02-vale",spawn:{x:480,y:420},exits:{north:"forest"},npcs:[
-    {x:420,y:350,name:"Lívia",portrait:"npc-livia",lines:["Olá, viajante...","Bem-vindo ao Vale das Cinzas. Aqui a paz ainda existe.","Mas o eclipse está mudando tudo." ]},
-    {x:690,y:335,name:"Orus",portrait:"npc-orus",lines:["Você não parece daqui...","Cuidado com o que a floresta sussurra.","Ela escuta tudo." ]}
-  ],props:"vale"},
-  forest:{name:"Floresta Sussurrante",bg:"scene03-forest",spawn:{x:480,y:440},exits:{north:"cave",south:"vale"},npcs:[
-    {x:700,y:300,name:"Orus",portrait:"npc-orus",lines:["O caminho muda quando ninguém olha.","As árvores guardam nomes esquecidos.","Siga as luzes azuis." ]},
-    {x:300,y:355,name:"Lívia",portrait:"npc-livia",lines:["A floresta não gosta de pressa.","Escute antes de agir.","Há uma ponte escondida ao norte." ]}
+  vale:{name:"Vale das Cinzas",bg:"vale", spawn:{x:480,y:420}, exits:{north:"forest"}, npcs:[
+    {x:420,y:350,name:"Mira",portrait:"wisp",lines:[
+      "Olá, viajante... então a sua alma escolheu continuar.",
+      "O Vale parece calmo, mas a floresta ao norte não dorme.",
+      "Se alguém tentar quebrar seu espírito, respire e observe."
+    ]},
+    {x:690,y:335,name:"Téo",portrait:"sentinel",lines:[
+      "Eu cuido desta casa há muito tempo.",
+      "Há criaturas que atacam por medo. Nem toda batalha precisa terminar em violência.",
+      "Você pode conversar, agir com cuidado e até poupar."
+    ]}
+  ], props:"vale"},
+  forest:{name:"Floresta Sussurrante",bg:"forest",spawn:{x:480,y:440},exits:{north:"cave",south:"vale"},npcs:[
+    {x:700,y:300,name:"Lume",portrait:"wisp",lines:["Shhh... a floresta escuta.","O morcego ali perto gosta de assustar viajantes.","Se você entender o medo dele, talvez o combate mude."]},
+    {x:300,y:355,name:"Nara",portrait:"bat",lines:["A água deste rio reflete memórias.","Você vai precisar de coragem para atravessar a ponte.","Não confunda coragem com crueldade."]}
   ],props:"forest"},
-  cave:{name:"Caverna do Eco",bg:"scene04-cave",spawn:{x:480,y:450},exits:{north:"ruins",south:"forest"},npcs:[
-    {x:250,y:320,name:"Kafro",portrait:"npc-kafro",lines:["Ah... um viajante.","A caverna muda... assim como o seu destino.","O eco costuma responder com verdades." ]},
-    {x:760,y:360,name:"Zyra",portrait:"npc-zyra",lines:["Você chegou longe.","O eclipse não foi um fim.","O que era luz, agora é sombra." ]}
+  cave:{name:"Caverna do Eco",bg:"cave",spawn:{x:480,y:450},exits:{north:"ruins",south:"forest"},npcs:[
+    {x:250,y:320,name:"Orin",portrait:"sentinel",lines:["O eco repete tudo... até seus erros.","A Sentinela protege o caminho por um motivo.","Talvez uma boa ação seja mais forte que um golpe."]},
+    {x:760,y:360,name:"Eco",portrait:"wisp",lines:["Eu sou só um eco.","Mas ouvi falar de um duelo mais adiante.","A lâmina do Duelista é rápida. Seu coração também precisa ser."]}
   ],props:"cave"},
-  ruins:{name:"Ruínas do Eclipse",bg:"scene05-ruins",spawn:{x:480,y:450},exits:{north:"lake",south:"cave"},npcs:[
-    {x:730,y:330,name:"Zyra",portrait:"npc-zyra",lines:["As ruínas lembram de tudo.","Não confie no silêncio do Guardião.","A próxima passagem está além do lago." ]}
-  ],props:"ruins"},
-  lake:{name:"Lago das Memórias",bg:"scene06-lake",spawn:{x:480,y:450},exits:{north:"twilight",south:"ruins"},npcs:[
-    {x:240,y:330,name:"Seren",portrait:"npc-seren",lines:["Este lago guarda as memórias de todos que já passaram por aqui.","Você também deixará a sua.","O brilho na água aponta para o leste."]},
-    {x:700,y:350,name:"Lívia",portrait:"npc-livia",lines:["Algumas lembranças doem.","Outras mostram o caminho.","Não deixe o eclipse escolher por você."]}
-  ],props:"forest"},
-  twilight:{name:"Vila do Crepúsculo",bg:"area07-twilight",spawn:{x:480,y:440},exits:{north:"prism",south:"lake"},npcs:[
-    {x:300,y:340,name:"Kafro",portrait:"npc-kafro",lines:["As lanternas apagam quando o céu escurece.","A vila sobrevive escondendo seus sonhos.","Suba a trilha de cristais."]},
-    {x:720,y:330,name:"Seren",portrait:"npc-seren",lines:["Aqui todos lembram do eclipse.","Mas ninguém conta a mesma história."]}
-  ],props:"vale"},
-  prism:{name:"Bosque Prismático",bg:"area08-prism",spawn:{x:480,y:440},exits:{north:"sanctuary",south:"twilight"},npcs:[
-    {x:250,y:340,name:"Lívia",portrait:"npc-livia",lines:["As cores aqui não são só cores.","Cada cristal guarda uma escolha.","Escolha com calma."]},
-    {x:760,y:340,name:"Zyra",portrait:"npc-zyra",lines:["A luz prismática fere a sombra.","É por isso que o eclipse a teme."]}
-  ],props:"forest"},
-  sanctuary:{name:"Santuário do Eclipse",bg:"area09-sanctuary",spawn:{x:480,y:440},exits:{north:"source",south:"prism"},npcs:[
-    {x:280,y:330,name:"Orus",portrait:"npc-orus",lines:["Aqui as escolhas pesam mais.","Um guardião antigo desperta ao norte."]},
-    {x:730,y:330,name:"Kafro",portrait:"npc-kafro",lines:["Não precisa vencer tudo com força.","Às vezes sobreviver já é uma resposta."]}
-  ],props:"ruins"},
-  source:{name:"Nascente das Memórias",bg:"area10-source",spawn:{x:480,y:440},exits:{south:"sanctuary"},npcs:[
-    {x:690,y:340,name:"Seren",portrait:"npc-seren",lines:["A nascente mostra o que você pode se tornar.","O eclipse chegou ao fim do caminho.","Agora falta decidir como ele termina."]}
-  ],props:"forest"}
+  ruins:{name:"Ruínas do Eclipse",bg:"ruins",spawn:{x:480,y:450},exits:{south:"cave"},npcs:[
+    {x:730,y:330,name:"A Voz",portrait:"boss",lines:["O eclipse já começou.","O Guardião não quer apenas vencer você.","Ele quer descobrir se sua alma pode permanecer inteira.","Quando chegar a hora, escolha quem você quer ser."]}
+  ],props:"ruins"}
 };
 
 const encounters = {
-  bat:{name:"Sombra Errante",portrait:"enemy-shadow",maxHp:28,atk:4,xp:15,gold:8,color:"#d96cff",intro:"A Sombra Errante abre suas asas de névoa!",actions:["ELOGIAR","ACALMAR"],mercyNeed:2,pattern:"orbs"},
-  sentinel:{name:"Vigia Prismático",portrait:"enemy-burst",maxHp:40,atk:5,xp:24,gold:12,color:"#69d8ff",intro:"O Vigia Prismático reflete seu movimento.",actions:["OBSERVAR","REPARAR"],mercyNeed:2,pattern:"walls"},
-  duelist:{name:"Duelista do Eclipse",portrait:"enemy-heroine",maxHp:44,atk:6,xp:32,gold:18,color:"#ff5a9d",intro:"Uma duelista surge entre brilhos violeta.",actions:["ELOGIAR","DESAFIAR"],mercyNeed:3,pattern:"slash"},
-  wisp:{name:"Orbe da Memória",portrait:"enemy-burst",maxHp:34,atk:5,xp:27,gold:15,color:"#9d8aff",intro:"O Orbe abre uma fenda de lembranças.",actions:["OUVIR","ACALMAR"],mercyNeed:2,pattern:"rings"},
-  boss:{name:"Guardião do Eclipse",portrait:"enemy-guardian",maxHp:120,atk:8,xp:100,gold:80,color:"#ff5ad7",intro:"O Guardião do Eclipse desperta no santuário.",actions:["ENCARAR","LEMBRAR"],mercyNeed:5,pattern:"boss"}
+  bat:{name:"Morcego Nebuloso",portrait:"bat",maxHp:20,atk:4,xp:15,gold:8,color:"#d96cff",
+    intro:"As asas cortam o silêncio!", actions:["ELOGIAR","ASSUSTAR"], mercyNeed:2, pattern:"orbs"},
+  sentinel:{name:"Sentinela de Pedra",portrait:"sentinel",maxHp:32,atk:5,xp:24,gold:12,color:"#69b8e8",
+    intro:"A Sentinela bloqueia a passagem.", actions:["OBSERVAR","REPARAR"], mercyNeed:2, pattern:"walls"},
+  duelist:{name:"Duelista Rubro",portrait:"duelist",maxHp:38,atk:6,xp:32,gold:18,color:"#ff5a6d",
+    intro:"Uma lâmina surge na penumbra.", actions:["ELOGIAR","DESAFIAR"], mercyNeed:3, pattern:"slash"},
+  wisp:{name:"Orbe Sussurrante",portrait:"wisp",maxHp:28,atk:5,xp:27,gold:15,color:"#9d8aff",
+    intro:"O orbe muda de cor.", actions:["OUVIR","ACALMAR"], mercyNeed:2, pattern:"rings"},
+  boss:{name:"Guardião do Eclipse",portrait:"boss",maxHp:120,atk:8,xp:100,gold:80,color:"#ff5ad7",
+    intro:"O eclipse se fecha sobre as ruínas.", actions:["ENCARAR","LEMBRAR"], mercyNeed:5, pattern:"boss"}
 };
 
 function saveGame(){
@@ -296,13 +280,13 @@ function interact(){
 
 function encounterCheck(){
   if(S.mode!=="world"||S.transition>0||S.pause) return;
-  const p=S.player; let type=null;
+  const p=S.player;
+  let type=null;
   if(S.map==="forest" && !S.defeated.bat && p.x>405&&p.x<560&&p.y>150&&p.y<230) type="bat";
-  if(S.map==="cave" && !S.defeated.sentinel && p.x>400&&p.x<560&&p.y>210&&p.y<315) type="sentinel";
   if(S.map==="forest" && !S.defeated.duelist && p.x>430&&p.x<530&&p.y>80&&p.y<125) type="duelist";
-  if(S.map==="lake" && !S.defeated.wisp && p.x>650&&p.x<820&&p.y>360&&p.y<470) type="wisp";
-  if(S.map==="sanctuary" && !S.defeated.duelist && p.x>420&&p.x<560&&p.y<180) type="duelist";
-  if(S.map==="source" && !S.defeated.boss && p.y<180) type="boss";
+  if(S.map==="cave" && !S.defeated.sentinel && p.x>400&&p.x<560&&p.y>210&&p.y<315) type="sentinel";
+  if(S.map==="cave" && !S.defeated.wisp && p.x>700&&p.x<850&&p.y>390&&p.y<480) type="wisp";
+  if(S.map==="ruins" && !S.defeated.boss && p.y<180) type="boss";
   if(type) startBattle(type);
 }
 
@@ -535,17 +519,25 @@ function finishBattle(win){
   b.phase=win?"victory":"defeat"; b.defeatT=0; b.enemy.alpha=1; b.bullets=[]; saveGame(); sound(win?"win":"spare");
 }
 function drawBattleEnemy(b){
-  const e=b.enemy, im=img[e.portrait];
+  const e=b.enemy, key=e.portrait, im=img[key];
   const sh=e.shake>0?(Math.random()-.5)*e.shake:0;
-  const bob=S.reduceMotion?0:Math.sin(S.t*3.2+(b.turn||0))*4;
-  const pulse=S.reduceMotion?1:1+Math.sin(S.t*4)*.022;
-  const w=b.type==="boss"?430:340, h=b.type==="boss"?300:230;
-  ctx.save();ctx.translate(sh,bob);ctx.scale(pulse,pulse);ctx.globalAlpha=e.alpha;
-  const aura=ctx.createRadialGradient(480,235,10,480,235,b.type==="boss"?230:150);aura.addColorStop(0,(e.color||"#b84cff")+"66");aura.addColorStop(1,"#00000000");ctx.fillStyle=aura;ctx.fillRect(230,70,500,360);
-  if(im && im.complete && im.naturalWidth>0 && !im.__failed){ctx.drawImage(im,480-w/2,115,w,h);}
-  else drawEnemyFallback(480,240,b.type,b.type==="boss"?1.45:1);
-  ctx.globalAlpha=.28+.1*Math.sin(S.t*6);ctx.strokeStyle=e.color||"#c86cff";ctx.lineWidth=3;ctx.beginPath();ctx.arc(480,250,b.type==="boss"?175:125,0,TAU);ctx.stroke();
-  if(e.hit>0){ctx.globalAlpha=Math.min(.82,e.hit*4);ctx.fillStyle="#fff";ctx.fillRect(280,80,400,330);}
+  const bob=S.reduceMotion?0:Math.sin(S.t*3.2+(b.turn||0))*(b.type==="boss"?5:3);
+  const pulse=S.reduceMotion?1:1+Math.sin(S.t*4)*.018;
+  ctx.save();ctx.translate(sh,bob);ctx.scale(pulse,pulse);
+  const w=b.type==="boss"?380:300, h=b.type==="boss"?285:215;
+  ctx.globalAlpha=e.alpha;
+  // aura behind the enemy, matching the purple neon look of the reference
+  const aura=ctx.createRadialGradient(480,235,10,480,235,b.type==="boss"?220:145);
+  aura.addColorStop(0,(e.color||"#b84cff")+"55"); aura.addColorStop(1,"#00000000");
+  ctx.fillStyle=aura;ctx.fillRect(260,70,440,340);
+  if(im && im.complete && im.naturalWidth > 0 && !im.__failed){
+    try{ ctx.drawImage(im,480-w/2,165-h/2,w,h); }
+    catch(_){ drawEnemyFallback(480,240,b.type,b.type==="boss"?1.35:.95); }
+  }else drawEnemyFallback(480,240,b.type,b.type==="boss"?1.35:.95);
+  // animated neon rim
+  ctx.globalAlpha=.25+.12*Math.sin(S.t*5); ctx.strokeStyle=e.color||"#c86cff"; ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(480,235,b.type==="boss"?155:105+Math.sin(S.t*3)*3,0,TAU);ctx.stroke();
+  if(e.hit>0){ctx.globalAlpha=Math.min(.82,e.hit*4);ctx.fillStyle="#fff";ctx.fillRect(290,95,380,300);}
   ctx.restore();
 }
 
@@ -605,10 +597,9 @@ function drawInteractionPrompt(){
 
 function drawWorld(){
   const m=maps[S.map], bg=mapImage();
-  if(S.lastMap!==S.map){S.lastMap=S.map;S.bannerT=2.5;S.bannerShown=true;}
   ctx.fillStyle="#182";ctx.fillRect(0,0,W,H);
   if(bg && bg.complete && bg.naturalWidth > 0 && !bg.__failed){
-    try{ const zoom=1.035+Math.sin(S.t*.55)*.008; const ww=W*zoom, hh=H*zoom; ctx.drawImage(bg,(W-ww)/2,(H-hh)/2,ww,hh); }
+    try{ ctx.drawImage(bg,0,0,W,H); }
     catch(_){ drawFallbackMap(m.props); }
   }else { drawFallbackMap(m.props); }
   // subtle animated lighting
@@ -617,6 +608,7 @@ function drawWorld(){
     const x=(i*137+Math.floor(S.t*8))%930+15,y=(i*71)%420+70;
     ctx.fillStyle=i%3===0?"#f4d77a":"#6ea35a";ctx.fillRect(x,y,2,2);
   }
+  drawProps(m.props);
   drawAmbient(m.props);
   for(const n of m.npcs)drawNPC(n);
   // fragment / soul
@@ -629,9 +621,6 @@ function drawWorld(){
   const vg=ctx.createRadialGradient(W/2,H/2,150,W/2,H/2,600);vg.addColorStop(0,"#00000000");vg.addColorStop(1,"#000000");
   ctx.fillStyle=vg;ctx.globalAlpha=.22;ctx.fillRect(0,0,W,H);ctx.restore();
   drawHUD();
-  if(S.bannerT>0){
-    const a=Math.min(1,S.bannerT>.4?1:S.bannerT/.4);ctx.save();ctx.globalAlpha=a;ctx.fillStyle="#03020be8";roundRect(275,92,410,72,10,true);strokeRect(275,92,410,72,"#a875d4");txt("✦  "+m.name.toUpperCase()+"  ✦",480,125,21,"#fff","center","bold");txt("um novo fragmento da jornada",480,148,11,"#bfaed2","center");ctx.restore();
-  }
   if(S.toastT>0){ctx.fillStyle="#000d";roundRect(360,20,240,34,8,true);txt(S.toast,480,43,16,"#fff","center")}
 }
 function drawFallbackMap(type){
@@ -657,46 +646,42 @@ function drawProps(type){
   }
 }
 function drawNPC(n){
-  const bob=S.reduceMotion?0:Math.sin(S.t*2.4+n.x*.015)*3;
-  const im=img[n.portrait];
-  ctx.save();ctx.globalAlpha=.35;ctx.fillStyle="#000";ctx.beginPath();ctx.ellipse(n.x,n.y+25,26,8,0,0,TAU);ctx.fill();ctx.restore();
+  const bob=S.reduceMotion?0:Math.sin(S.t*2+n.x*.01)*2;
+  const glow=.5+.2*Math.sin(S.t*3+n.x*.02);
+  ctx.save();ctx.globalAlpha=.3;ctx.fillStyle="#000";ctx.beginPath();ctx.ellipse(n.x,n.y+18,20,6,0,0,TAU);ctx.fill();ctx.restore();
+  ctx.save();ctx.globalAlpha=.12*glow;ctx.fillStyle="#9c6cff";ctx.beginPath();ctx.arc(n.x,n.y-7,30,0,TAU);ctx.fill();ctx.restore();
+  drawHeart(n.x,n.y-31+bob,.52,false);
   ctx.save();ctx.translate(n.x,n.y+bob);
-  ctx.globalAlpha=.24+.1*Math.sin(S.t*4+n.x*.01);ctx.fillStyle="#b45cff";ctx.beginPath();ctx.arc(0,-6,42,0,TAU);ctx.fill();ctx.restore();
-  if(im && im.complete && im.naturalWidth>0 && !im.__failed){
-    ctx.save();ctx.translate(n.x,n.y+bob);ctx.imageSmoothingEnabled=false;
-    ctx.drawImage(im,-38,-46,76,70);
-    ctx.restore();
-  }
-  // Animated soul marker above the character, matching the reference language.
-  if(!S.reduceMotion){ctx.save();ctx.globalAlpha=.75+.2*Math.sin(S.t*5);ctx.strokeStyle="#e88cff";ctx.lineWidth=2;ctx.beginPath();ctx.arc(n.x,n.y-50+bob,10+Math.sin(S.t*3)*2,0,TAU);ctx.stroke();ctx.restore();}
+  const tone=n.name==="Téo"?"#d6b37a":n.name==="Nara"?"#77b7d9":n.name==="Orin"?"#9b8a78":n.name==="Lume"?"#65e6bd":"#e8e8e8";
+  ctx.fillStyle="#151522";ctx.fillRect(-14,-23,28,30);
+  ctx.fillStyle=tone;ctx.fillRect(-11,-21,22,25);
+  ctx.fillStyle="#1b1029";ctx.fillRect(-8,-14,5,6);ctx.fillRect(3,-14,5,6);
+  ctx.fillStyle=n.name==="Lume"?"#4bd6a7":"#7d55b5";ctx.fillRect(-16,5,32,10);
+  ctx.fillStyle="#fff";ctx.fillRect(-9,0,18,2);
+  ctx.fillStyle="#111";ctx.fillRect(-8,15,6,5);ctx.fillRect(2,15,6,5);
+  ctx.restore();
 }
 
 function drawPlayer(){
   const p=S.player;
   if(p.inv>0 && Math.floor(S.t*16)%2===0)return;
   const bob=Math.sin(p.walk)*2;
-  ctx.save();ctx.globalAlpha=.25;ctx.fillStyle="#000";ctx.beginPath();ctx.ellipse(p.x,p.y+15,18,6,0,0,TAU);ctx.fill();ctx.restore();
-  ctx.save();ctx.globalAlpha=.10+.05*Math.sin(S.t*5);ctx.fillStyle="#c56cff";ctx.beginPath();ctx.arc(p.x,p.y+bob,27+Math.sin(S.t*3)*2,0,TAU);ctx.fill();ctx.restore();
-  if(!S.reduceMotion && Math.floor(S.t*14)%3===0) sparkle(p.x+(Math.random()-.5)*10,p.y+(Math.random()-.5)*12,"#e9c7ff");
-  drawHeart(p.x,p.y+bob,1.05,true);
+  ctx.save();ctx.globalAlpha=.28;ctx.fillStyle="#000";ctx.beginPath();ctx.ellipse(p.x,p.y+15,16,5,0,0,TAU);ctx.fill();ctx.restore();
+  drawHeart(p.x,p.y+bob,1.0,true);
 }
 function drawHUD(){
-  ctx.save();
-  ctx.fillStyle="#05040bdd";roundRect(18,16,330,70,9,true);strokeRect(18,16,330,70,"#7f6b9f");
-  txt("ALMA",31,37,14,"#f8f4ff","left","bold");txt("LV "+S.player.lv,88,37,14,"#d7c5f4","left","bold");
-  txt("HP",31,62,12,"#fff","left","bold");
-  ctx.fillStyle="#1a0d18";roundRect(65,51,180,12,5,true);ctx.fillStyle="#ff3f66";roundRect(65,51,180*(S.player.hp/S.player.maxHp),12,5,true);
-  txt(`${S.player.hp}/${S.player.maxHp}`,254,62,11,"#fff","left","bold");
-  txt("EXP",31,79,10,"#aaa");ctx.fillStyle="#171328";roundRect(65,72,180,7,3,true);ctx.fillStyle="#a96cff";roundRect(65,72,180*(S.player.exp/S.player.next),7,3,true);
-  txt(`EXP ${S.player.exp}/${S.player.next}`,255,79,10,"#cdbce6","left");
-  const gold=S.player.gold||0;txt("◆ "+gold,332,37,13,"#ffd76b","right","bold");
-  txt(maps[S.map].name.toUpperCase(),W-25,32,15,"#fff","right","bold");
-  txt("E: falar/interagir   X: pausa",W-25,55,11,"#bcb3c9","right");
-  ctx.restore();
+  ctx.fillStyle="#05050bd9";ctx.fillRect(18,16,310,56);strokeRect(18,16,310,56,"#777");
+  txt("ALMA",30,37,15,"#fff");txt("LV "+S.player.lv,90,37,15,"#fff");
+  txt("HP",30,60,13,"#fff");
+  const bar=190;ctx.fillStyle="#25121a";ctx.fillRect(70,49,bar,12);ctx.fillStyle="#ffcf3f";ctx.fillRect(70,49,bar*(S.player.hp/S.player.maxHp),12);
+  txt(`${S.player.hp}/${S.player.maxHp}`,270,60,13,"#fff","right");
+  txt(`EXP ${S.player.exp}/${S.player.next}`,340,37,13,"#fff");
+  txt(maps[S.map].name, W-25,35,15,"#fff","right");
+  txt("E: falar/interagir   X: pausa",W-25,58,11,"#bbb","right");
 }
+
 function drawDialogue(){
   drawWorld();
-  const plate=img["scene14-lake-dialogue"]; if(plate&&plate.complete&&plate.naturalWidth>0&&!plate.__failed){ctx.globalAlpha=.18;ctx.drawImage(plate,0,0,W,H);ctx.globalAlpha=1;}
   ctx.fillStyle="#000c";ctx.fillRect(0,0,W,H);
   const n=getNPCs().find(q=>q.name===S.speaker);
   const boxY=355;
@@ -713,18 +698,20 @@ function drawDialogue(){
 }
 
 function drawTitle(){
-  const im=img["scene01-title"];
-  if(im && im.complete && im.naturalWidth>0 && !im.__failed){ctx.drawImage(im,0,0,W,H);}
-  else {ctx.fillStyle="#03020a";ctx.fillRect(0,0,W,H);}
-  // A camada animada mantém a ilustração fornecida intacta, só adicionando vida à cena.
-  if(!S.reduceMotion){
-    for(let i=0;i<32;i++){
-      const x=(i*101+S.t*(3+i%4))%W, y=(i*53)%H;
-      ctx.globalAlpha=.10+.10*Math.sin(S.t*2+i);ctx.fillStyle="#eeb7ff";ctx.fillRect(x,y,2,2);
-    }
-    ctx.globalAlpha=.25;ctx.strokeStyle="#d978ff";ctx.lineWidth=2;
-    ctx.beginPath();ctx.arc(160,180,80+Math.sin(S.t*1.7)*5,0,TAU);ctx.stroke();ctx.globalAlpha=1;
+  ctx.fillStyle="#05030b";ctx.fillRect(0,0,W,H);
+  const grd=ctx.createRadialGradient(480,250,20,480,250,450);grd.addColorStop(0,"#2a1760");grd.addColorStop(1,"#05030b");ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+  for(let i=0;i<80;i++){const x=(i*97)%960,y=(i*47)%540;ctx.fillStyle=i%4?"#fff":"#b987ff";ctx.fillRect(x,y,2,2)}
+  drawHeart(480,235,2.4,true);
+  txt("SOULBOUND",480,125,56,"#fff","center","bold");
+  txt("V6",480,157,22,"#c57cff","center","bold");
+  txt("uma história sobre o que permanece",480,155,16,"#cbbcff","center");
+  const opts=["COMEÇAR","CONTINUAR","CONFIGURAÇÕES","SAIR"];
+  for(let i=0;i<opts.length;i++){
+    const y=265+i*45;
+    ctx.fillStyle=S.option===i?"#fff":"#0b0b12";roundRect(340,y,280,36,6,true);
+    txt(opts[i],480,y+24,16,S.option===i?"#05050a":"#fff","center");
   }
+  txt("V6 • CAPÍTULO 1 • original • navegador",480,515,12,"#8e7bdc","center");
 }
 function titleInput(){
   if((keys.arrowup||keys.w)&&!S.cool){S.option=(S.option+3)%4;S.cool=.16}
@@ -739,53 +726,50 @@ function titleInput(){
 }
 
 function drawBattle(){
-  ctx.fillStyle="#020208";ctx.fillRect(0,0,W,H);
-  const battleScene = S.battle && S.battle.type === "boss" ? img["scene09-guardian-battle"] : img["scene07-battle-shadow"];
-  if(battleScene && battleScene.complete && battleScene.naturalWidth>0 && !battleScene.__failed){
-    const pulse=1.015+Math.sin(S.t*.8)*.006;ctx.globalAlpha=.88;ctx.drawImage(battleScene,(W-W*pulse)/2,(H-H*pulse)/2,W*pulse,H*pulse);ctx.globalAlpha=1;
-  } else {
-    const bg=ctx.createRadialGradient(480,220,20,480,260,500);bg.addColorStop(0,"#24123f");bg.addColorStop(.55,"#080714");bg.addColorStop(1,"#020208");ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-  }
-  for(let i=0;i<34;i++){const x=(i*91+S.t*(10+i%4))%W,y=75+(i*67)%420;ctx.globalAlpha=.05+.04*Math.sin(S.t+i);ctx.fillStyle=i%3?"#a86cff":"#ff63d8";ctx.fillRect(x,y,2,2)}
-  const b=S.battle,e=b.enemy;
-  ctx.globalAlpha=1;
-  txt(e.name.toUpperCase(),28,34,18,"#fff","left","bold");
-  txt(`HP ${e.hp}/${e.maxHp}`,932,34,13,"#e8dff2","right","bold");
-  ctx.fillStyle="#190c16";roundRect(650,22,242,15,5,true);ctx.fillStyle="#ff4169";roundRect(650,22,242*Math.max(0,e.hp/e.maxHp),15,5,true);
+  ctx.fillStyle="#030307";ctx.fillRect(0,0,W,H);
+  const b=S.battle, e=b.enemy;
+  txt(e.name,32,35,19,"#fff");
+  txt(`HP ${e.hp}/${e.maxHp}`,928,35,14,"#fff","right");
+  ctx.fillStyle="#29131b";ctx.fillRect(650,24,240,13);ctx.fillStyle="#ff4761";ctx.fillRect(650,24,240*(e.hp/e.maxHp),13);
   drawBattleEnemy(b);
-  // Arena frame.
-  ctx.save();ctx.strokeStyle="#514067";ctx.lineWidth=2;ctx.strokeRect(330,350,300,150);ctx.globalAlpha=.55;ctx.strokeStyle=e.color||"#a76cff";ctx.beginPath();ctx.arc(480,425,82+Math.sin(S.t*2)*3,0,TAU);ctx.stroke();
-  ctx.globalAlpha=.12;ctx.fillStyle=e.color||"#a76cff";ctx.fillRect(331,351,298,148);ctx.restore();
-  if(["enemy","message","menu","act","item","fight"].includes(b.phase)){
-    ctx.fillStyle="#03030aee";roundRect(278,334,404,174,10,true);strokeRect(278,334,404,174,"#ddd3ea");
-    // corner accents
-    ctx.fillStyle=e.color||"#b76cff";ctx.fillRect(278,334,46,3);ctx.fillRect(636,505,46,3);
+  ctx.save();ctx.strokeStyle="#24243a";ctx.lineWidth=2;ctx.strokeRect(330,350,300,150);ctx.globalAlpha=.35;ctx.strokeStyle="#6f5caa";ctx.beginPath();ctx.arc(480,425,82+Math.sin(S.t*2)*3,0,TAU);ctx.stroke();ctx.restore();
+  if(b.phase==="enemy"||b.phase==="message"||b.phase==="menu"||b.phase==="act"||b.phase==="item"||b.phase==="fight"){
+    ctx.fillStyle="#020207";roundRect(290,340,380,160,8,true);strokeRect(290,340,380,160,"#fff");
   }
   if(b.phase==="enemy"){
     for(const q of b.bullets)drawBullet(q);
     drawHeart(b.heart.x,b.heart.y,1+Math.sin(S.t*8)*.05,true);
-    txt("DESVIE-SE",480,526,13,"#d2c7df","center","bold");
+    txt("DESVIE-SE!",480,525,13,"#aaa","center");
   }else if(b.phase==="message"){
-    txt("• "+(b.message[b.msgIndex]||""),310,395,17,"#fff");txt("E / Espaço / Enter",650,480,12,"#aaa","right");
+    txt("• "+(b.message[b.msgIndex]||""),320,395,17,"#fff");
+    txt("E / Espaço / Enter",640,475,12,"#aaa","right");
   }else if(b.phase==="fight"){
-    txt("LUTE — acerte o centro",480,374,15,"#ffe45b","center","bold");
-    ctx.fillStyle="#211b29";roundRect(340,420,280,18,5,true);ctx.fillStyle="#ffd84d";roundRect(340,420,280,18,5,true);
-    ctx.fillStyle="#111";ctx.fillRect(478,414,4,30);ctx.fillStyle="#fff";ctx.fillRect(340+b.fightScore*280,414,6,30);
-    txt("E / Espaço / Enter",480,480,12,"#aaa","center");
+    txt("LUTE — acerte o centro!",480,375,15,"#fff","center");
+    ctx.fillStyle="#222";ctx.fillRect(345,420,270,16);ctx.fillStyle="#ffdd4a";ctx.fillRect(345,420,270,16);
+    ctx.fillStyle="#111";ctx.fillRect(478,415,4,26);
+    ctx.fillStyle="#fff";ctx.fillRect(345+b.fightScore*270,416,5,24);
+    txt("E / Espaço / Enter",480,475,12,"#aaa","center");
   }else if(b.phase==="act"){
-    txt("AGIR",315,372,16,"#ffe04d","left","bold");
-    for(let i=0;i<e.actions.length;i++){txt((i===b.sub?"◆ ":"  ")+e.actions[i],315,410+i*28,15,i===b.sub?"#fff":"#aaa","left",i===b.sub?"bold":"normal")}
-    txt("X para voltar",650,480,12,"#aaa","right");
+    txt("AGIR",330,375,16,"#ffdf49");
+    for(let i=0;i<e.actions.length;i++){txt((i===b.sub?"▶ ":"  ")+e.actions[i],330,410+i*28,15,i===b.sub?"#fff":"#aaa")}
+    txt("X para voltar",640,475,12,"#aaa","right");
   }else if(b.phase==="item"){
-    txt("ITEM",315,372,16,"#57ef9b","left","bold");
-    S.inventory.forEach((it,i)=>txt((i===b.itemIndex?"◆ ":"  ")+it.name+" x"+it.qty,315,410+i*28,15,i===b.itemIndex?"#fff":"#aaa","left",i===b.itemIndex?"bold":"normal"));
-    txt("X para voltar",650,480,12,"#aaa","right");
+    txt("ITEM",330,375,16,"#65e69d");
+    S.inventory.forEach((it,i)=>txt((i===b.itemIndex?"▶ ":"  ")+it.name+" x"+it.qty,330,410+i*28,15,i===b.itemIndex?"#fff":"#aaa"));
+    txt("X para voltar",640,475,12,"#aaa","right");
   }else if(b.phase==="menu"){
-    const labels=[["LUTAR","#ff4f67"],["AGIR","#ffe04d"],["ITEM","#53ed99"],["POUPAR","#5bd5ff"]];
-    labels.forEach((it,i)=>{const x=193+i*190,sel=i===b.menu;ctx.fillStyle=sel?it[1]:"#11101a";roundRect(x,456,170,40,7,true);strokeRect(x,456,170,40,it[1]);txt((sel?"◆ ":"")+it[0],x+85,481,15,sel?"#08060c":it[1],"center","bold")});
-    txt("← → escolher   E confirmar   1-4 atalhos",480,528,11,"#aaa","center");
-  }else if(b.phase==="victory") overlayBox("VOCÊ VENCEU!",["A alma permanece inteira.","+"+e.xp+" EXP  •  +"+e.gold+" ouro"],"#8dffbb");
-  else if(b.phase==="defeat") overlayBox("VOCÊ POUPou!",["Você escolheu não destruir.","A jornada continua."],"#7ed8ff");
+    const labels=[["LUTAR","#ff4f5d"],["AGIR","#ffe04d"],["ITEM","#52e88d"],["POUPAR","#57cfff"]];
+    labels.forEach((it,i)=>{
+      const x=205+i*185;ctx.fillStyle=i===b.menu?it[1]:"#14141b";roundRect(x,455,160,38,6,true);strokeRect(x,455,160,38,it[1]);
+      txt(it[0],x+80,480,16,i===b.menu?"#05050a":it[1],"center");
+    });
+    txt("← → escolher   E confirmar",480,525,12,"#aaa","center");
+    txt("V6 • CAP. 1",928,525,11,"#6e62a0","right");
+  }else if(b.phase==="victory"){
+    overlayBox("VOCÊ VENCEU!",["A alma permanece inteira.","+"+e.xp+" EXP  •  +"+e.gold+" ouro"],"#8dffbb");
+  }else if(b.phase==="defeat"){
+    overlayBox("VOCÊ POUPou!",["Você escolheu não destruir.","A jornada continua."],"#7ed8ff");
+  }
 }
 function drawBullet(q){
   ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.angle||0);
@@ -798,8 +782,7 @@ function drawBullet(q){
   ctx.restore();
 }
 function overlayBox(title,lines,color){
-  const v=img["scene10-victory"]; if(v&&v.complete&&v.naturalWidth>0&&!v.__failed){ctx.globalAlpha=.92;ctx.drawImage(v,0,0,W,H);ctx.globalAlpha=1;}
-  ctx.fillStyle="#000b";ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="#000d";ctx.fillRect(0,0,W,H);
   roundRect(240,170,480,220,12,true);strokeRect(240,170,480,220,color);
   txt(title,480,235,30,color,"center","bold");
   lines.forEach((l,i)=>txt(l,480,285+i*28,16,"#fff","center"));
@@ -843,7 +826,7 @@ function drawDead(){
 }
 
 function update(dt){
-  S.t+=dt; S.cool=Math.max(0,(S.cool||0)-dt); if(S.toastT>0)S.toastT-=dt; if(S.bannerT>0)S.bannerT-=dt;
+  S.t+=dt; S.cool=Math.max(0,(S.cool||0)-dt); if(S.toastT>0)S.toastT-=dt;
   for(let i=S.particles.length-1;i>=0;i--){const p=S.particles[i];p.x+=p.vx*60*dt;p.y+=p.vy*60*dt;p.vy+=.035;p.t-=dt;if(p.t<=0)S.particles.splice(i,1)}
   for(let i=S.floaters.length-1;i>=0;i--){const f=S.floaters[i];f.y+=f.vy*dt;f.t-=dt;if(f.t<=0)S.floaters.splice(i,1)}
   for(let i=S.flashes.length-1;i>=0;i--){S.flashes[i].t-=dt;if(S.flashes[i].t<=0)S.flashes.splice(i,1)}

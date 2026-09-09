@@ -1,23 +1,13 @@
-# SOULBOUND V6 — Capítulo 1
+# SOULBOUND V8 — Cenas da Referência
 
-Versão visualmente revisada do Capítulo 1, com direção de arte neon pixel-art inspirada na referência fornecida pelo criador.
+Esta versão abandona os gráficos antigos como fonte de renderização e usa os recortes da imagem enviada como base visual das cenas, áreas, diálogos e batalhas.
 
-## Novidades
-- cenários mais ricos em Vale, Floresta, Caverna e Ruínas;
-- personagens e chefes redesenhados com silhuetas mais marcantes;
-- animações de pulsação, flutuação, brilho, impacto e aura;
-- efeitos de partículas e iluminação ambiente;
-- HUD e batalha com apresentação mais próxima da referência;
-- suporte a teclado, celular e tela cheia;
-- compatibilidade de carregamento com saves antigos da V5/V5.1;
-- sem dependências externas.
+## O que mudou
+- 15 cenas recortadas da referência incluídas em `assets/scene01` a `scene15`.
+- 5 novas áreas no Capítulo 1: Lago das Memórias, Vila do Crepúsculo, Bosque Prismático, Santuário do Eclipse e Nascente das Memórias.
+- NPCs redesenhados a partir dos retratos fornecidos (Lívia, Orus, Kafro, Zyra e Seren).
+- Aparência das batalhas e chefes substituída pelos recortes dos painéis da referência.
+- Animações leves de pulsação, brilho, partículas, flutuação dos personagens e câmera.
+- Mantido o sistema de movimento, diálogo, combate, itens, XP, save e controles do projeto anterior, mas sem usar os SVGs antigos para renderizar as cenas/NPCs.
 
-## Controles
-- WASD / setas: mover
-- E / Espaço / Enter: interagir e confirmar
-- X / Esc: pausa/voltar
-- F: tela cheia
-- S: salvar
-
-## Publicação
-Envie todos os arquivos desta pasta para a raiz do repositório GitHub Pages.
+Abra `index.html` em um servidor local ou publique a pasta no GitHub Pages.

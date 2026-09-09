@@ -1,1 +1,8 @@
-{"name":"Soulbound V7","short_name":"Soulbound","start_url":"./","display":"fullscreen","background_color":"#05030b","theme_color":"#5d2d91","lang":"pt-BR"}
+{
+  "name": "Soulbound V8 — Cenas da Referência",
+  "short_name": "Soulbound V8",
+  "start_url": "./",
+  "display": "fullscreen",
+  "background_color": "#05020d",
+  "theme_color": "#6a21ff"
+}
